@@ -1,0 +1,142 @@
+{
+ "amplicons": [
+  {
+   "name": "A1",
+   "lo": 11,
+   "hi": 260,
+   "len": 250,
+   "bits": 212.69730679930026,
+   "nbases": 214
+  },
+  {
+   "name": "A2",
+   "lo": 516,
+   "hi": 805,
+   "len": 290,
+   "bits": 191.48345490243722,
+   "nbases": 254
+  },
+  {
+   "name": "A3",
+   "lo": 910,
+   "hi": 1195,
+   "len": 286,
+   "bits": 171.76866182519325,
+   "nbases": 250
+  },
+  {
+   "name": "A4",
+   "lo": 1222,
+   "hi": 1509,
+   "len": 288,
+   "bits": 187.24544292895024,
+   "nbases": 252
+  }
+ ],
+ "sets": {
+  "A1-F": {
+   "single": [
+    "GTTTGATCMTGGCTCASR"
+   ],
+   "multi": [
+    "GTTTGATCMTGGCTCASR",
+    "GTTTGATCCTGGCTCARS",
+    "GTTTGATYYTGGCTCAGG"
+   ],
+   "o": "F",
+   "st": 11,
+   "L": 18
+  },
+  "A1-R": {
+   "single": [
+    "CCYCACCAACWAGCTRAT"
+   ],
+   "multi": [
+    "CCYCACCAACWAGCTRAT",
+    "CCCYRCCAACTAGCTAAT",
+    "CCMCACCAACTARCTAAT"
+   ],
+   "o": "R",
+   "st": 243,
+   "L": 18
+  },
+  "A2-F": {
+   "single": [
+    "TGCCAKCAGCCGCGGYRA"
+   ],
+   "multi": [
+    "TGCCAKCAGCCGCGGYRA",
+    "TGCCAGCASCCGCRGTAA",
+    "TGCCASCAGCCGCGGWAA"
+   ],
+   "o": "F",
+   "st": 516,
+   "L": 18
+  },
+  "A2-R": {
+   "single": [
+    "GACTACCVGGGTMTCTAA"
+   ],
+   "multi": [
+    "GACTACCVGGGTMTCTAA",
+    "GACTACSAGGGTATCTRA",
+    "RACTACYAGGGTATCTAA"
+   ],
+   "o": "R",
+   "st": 788,
+   "L": 18
+  },
+  "A3-F": {
+   "single": [
+    "CTCAAAGRAATTGACGGG"
+   ],
+   "multi": [
+    "CTCAAAGRAATTGACGGG",
+    "CTYAAAGGAATTGACGGR",
+    "CTCAAAGGAATWGRCGGG"
+   ],
+   "o": "F",
+   "st": 910,
+   "L": 18
+  },
+  "A3-R": {
+   "single": [
+    "ACGTCRTCCYCWCCTTCC"
+   ],
+   "multi": [
+    "ACGTCRTCCYCWCCTTCC",
+    "ACGTCATCCCCRCCTTCM",
+    "ACRTCATCCCCMCCTTCC"
+   ],
+   "o": "R",
+   "st": 1178,
+   "L": 18
+  },
+  "A4-F": {
+   "single": [
+    "GGCKRCACACRTGCTACA"
+   ],
+   "multi": [
+    "GGCKRCACACRTGCTACA",
+    "GGCTWCACACGTGMTACA",
+    "GGCTWCACRCGTGCTACA"
+   ],
+   "o": "F",
+   "st": 1222,
+   "L": 18
+  },
+  "A4-R": {
+   "single": [
+    "GHTACCTTGTTACGACTT"
+   ],
+   "multi": [
+    "GHTACCTTGTTACGACTT",
+    "GKTACCTTGTTACGACYT",
+    "GTTACCTTGYTACGACTK"
+   ],
+   "o": "R",
+   "st": 1492,
+   "L": 18
+  }
+ }
+}

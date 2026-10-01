@@ -1,0 +1,176 @@
+{
+ "amplicons": [
+  {
+   "name": "A1",
+   "lo": 11,
+   "hi": 260,
+   "len": 250,
+   "bits": 212.69730679930026,
+   "nbases": 214
+  },
+  {
+   "name": "A2",
+   "lo": 338,
+   "hi": 576,
+   "len": 239,
+   "bits": 151.03144839262666,
+   "nbases": 203
+  },
+  {
+   "name": "A3",
+   "lo": 692,
+   "hi": 925,
+   "len": 234,
+   "bits": 142.61845057432345,
+   "nbases": 198
+  },
+  {
+   "name": "A4",
+   "lo": 947,
+   "hi": 1196,
+   "len": 250,
+   "bits": 160.12888276309656,
+   "nbases": 214
+  },
+  {
+   "name": "A5",
+   "lo": 1331,
+   "hi": 1509,
+   "len": 179,
+   "bits": 108.56051769594819,
+   "nbases": 141
+  }
+ ],
+ "sets": {
+  "A1-F": {
+   "single": [
+    "GTTTGATCMTGGCTCASR"
+   ],
+   "multi": [
+    "GTTTGATCMTGGCTCASR",
+    "GTTTGATCCTGGCTCARS",
+    "GTTTGATYYTGGCTCAGG"
+   ],
+   "o": "F",
+   "st": 11,
+   "L": 18
+  },
+  "A1-R": {
+   "single": [
+    "CCYCACCAACWAGCTRAT"
+   ],
+   "multi": [
+    "CCYCACCAACWAGCTRAT",
+    "CCCYRCCAACTAGCTAAT",
+    "CCMCACCAACTARCTAAT"
+   ],
+   "o": "R",
+   "st": 243,
+   "L": 18
+  },
+  "A2-F": {
+   "single": [
+    "ACWYCTACGGGAGGCWGC"
+   ],
+   "multi": [
+    "ACWYCTACGGGAGGCWGC",
+    "AYTCCTACGGGAGGCASC",
+    "ACTCCTACGGGRGGCARC"
+   ],
+   "o": "F",
+   "st": 338,
+   "L": 18
+  },
+  "A2-R": {
+   "single": [
+    "CTTTAMGCCCARTAAWTC"
+   ],
+   "multi": [
+    "CTTTAMGCCCARTAAWTC",
+    "CTTTACGCCCAGTRAYTC",
+    "CTTTACGCCCAGTAAKTY"
+   ],
+   "o": "R",
+   "st": 559,
+   "L": 18
+  },
+  "A3-F": {
+   "single": [
+    "GGTGRAATSCGTAGAKAT"
+   ],
+   "multi": [
+    "GGTGRAATSCGTAGAKAT",
+    "GGTRAAATGCGTWGATAT",
+    "RGTGAAATGCGTAGATAY"
+   ],
+   "o": "F",
+   "st": 692,
+   "L": 18
+  },
+  "A3-R": {
+   "single": [
+    "CGTCAATTYCTTTGAGTT"
+   ],
+   "multi": [
+    "CGTCAATTYCTTTGAGTT",
+    "CGTCAATTCCTTTRARTT",
+    "CGTCAATTCCTTTGAGYY"
+   ],
+   "o": "R",
+   "st": 908,
+   "L": 18
+  },
+  "A4-F": {
+   "single": [
+    "GYATGYGGYTTAATTCGA"
+   ],
+   "multi": [
+    "GYATGYGGYTTAATTCGA",
+    "KCATGTGGTTTAATTYGA",
+    "GCATGTGGTTYAATTCGW"
+   ],
+   "o": "F",
+   "st": 947,
+   "L": 18
+  },
+  "A4-R": {
+   "single": [
+    "GACGTCRTCCYCWCCTTC"
+   ],
+   "multi": [
+    "GACGTCRTCCYCWCCTTC",
+    "GACGTCATCCCCRCCYTC",
+    "GACRTCMTCCCCACCTTC"
+   ],
+   "o": "R",
+   "st": 1179,
+   "L": 18
+  },
+  "A5-F": {
+   "single": [
+    "GAAGYYGGAATYGCTAGTAA"
+   ],
+   "multi": [
+    "GAAGYYGGAATYGCTAGTAA",
+    "GAAGKTGGARTCGCTAGTAA",
+    "GAAGWTGGARTCGCTAGTAA"
+   ],
+   "o": "F",
+   "st": 1331,
+   "L": 20
+  },
+  "A5-R": {
+   "single": [
+    "GHTACCTTGTTACGACTT"
+   ],
+   "multi": [
+    "GHTACCTTGTTACGACTT",
+    "GKTACCTTGTTACGACYT",
+    "GTTACCTTGYTACGACTK"
+   ],
+   "o": "R",
+   "st": 1492,
+   "L": 18
+  }
+ }
+}
