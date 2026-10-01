@@ -3,8 +3,10 @@
 | 文件 | 说明 |
 |---|---|
 | `smurf5r.py` | 与 `mFiles/*.m` 一一对应的 Python 实现（每个函数注释中标明对应的 .m 文件），另含引物覆盖度评估与从 FASTA 构建 5R 数据库的工具 |
+| `primer_design.py` / `design_primers.py` | 引物重设计：把参考序列投影到 E. coli 坐标、扫描保守位点、按“同管引物位点不重叠”精确求解 1/2 管平铺、Tm 调整与二聚体检查 |
 | `make_notebook.py` | 生成 `../notebooks/5R_SMURF_step_by_step.ipynb` |
 | `../notebooks/5R_SMURF_step_by_step.ipynb` | 逐步复现 + 与官方 `example_results/` 比对 + 扩展分析（已执行，含输出） |
+| `../docs/primer_redesign.html` | 引物重设计结果（加入 V4）与现有 5R 的坐标核对 |
 | `../docs/5R_SMURF_pipeline.html` | 流程图解、算法讲解、代码问题清单与改进建议 |
 
 ## 环境
