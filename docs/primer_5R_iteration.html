@@ -1,0 +1,136 @@
+<title>5R 引物迭代</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (~70ch) with full-bleed figures; a sticky step index on wide screens.
+   Color: lab-paper neutrals tinted toward the cobalt accent; nucleotide colors (A/C/G/T, chromatogram convention) as the subject detail. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6675; --line:#d7dde5;
+  --accent:#2747c8; --accent-soft:#e3e8fb;
+  --A:#1f8a4c; --C:#2f62d6; --G:#b07800; --T:#c8372d;
+  --ok:#1f8a4c; --warn:#b07800; --bad:#c8372d;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}.toc{display:none}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:13px;line-height:1.5}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 10px;border-left:2px solid var(--line)}
+.toc a:hover,.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent);outline:none}
+.toc .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+main{min-width:0}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(30px,5vw,44px);line-height:1.2;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--serif);font-weight:800;font-size:26px;line-height:1.3;margin:64px 0 8px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-size:18px;font-weight:700;margin:32px 0 6px}
+p,li{max-width:68ch}
+p{margin:10px 0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+.seq{font-family:var(--mono);letter-spacing:.04em;font-size:13px;white-space:nowrap}
+.sA{color:var(--A)}.sC{color:var(--C)}.sG{color:var(--G)}.sT{color:var(--T)}.sX{color:var(--accent);font-weight:600}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0;overflow-x:auto}
+.figure figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:none}
+svg text{font-family:var(--sans)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.fact{border-top:2px solid var(--ink);padding-top:8px}
+.fact b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.n{text-align:right;font-family:var(--mono);font-size:13px}
+.tbl{overflow-x:auto;margin:14px 0}
+
+/* pipeline steps */
+.steps{list-style:none;padding:0;margin:20px 0;display:grid;gap:0;counter-reset:st}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;position:relative;padding-bottom:26px}
+.step:before{counter-increment:st;content:counter(st);width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--mono);z-index:1}
+.step:after{content:"";position:absolute;left:17px;top:38px;bottom:0;width:2px;background:var(--line)}
+.step:last-child:after{display:none}
+.step h3{margin:4px 0 2px}
+.step .file{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.step .io{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface);white-space:nowrap}
+.pill.k{border-color:var(--accent);color:var(--accent)}
+
+.formula{font-family:var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;font-size:14px;line-height:1.9}
+.note{border-left:3px solid var(--warn);padding:6px 14px;margin:14px 0;background:var(--surface);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p,.card li{font-size:14.5px}
+.card ul{padding-left:18px;margin:6px 0}
+.pri{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:4px;margin-right:6px;vertical-align:2px}
+.p1{background:var(--bad);color:var(--surface)}.p2{background:var(--warn);color:var(--surface)}.p3{background:var(--muted);color:var(--surface)}
+.bugs td:first-child{white-space:nowrap}
+.heat td.h{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink)}
+footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:no-preference){.toc a{transition:color .15s,border-color .15s}}
+</style>
+<div class="wrap"><main style="grid-column:1/-1;width:100%;max-width:980px;margin-inline:auto">
+<header>
+  <div class="eyebrow">16S_5R · 引物迭代</div>
+  <h1>5R 现有引物：简并碱基迭代与同位点多引物</h1>
+  <p class="lede">保持 10 个引物位点和长度不变，只改引物序列：①加简并碱基；②同一位点放 2–3 条引物。设计只用 Greengenes 85% OTU 集和 SILVA 随机 1.2 万条，验证用没参与设计的 SILVA 4.8 万条和 Greengenes 1.2 万条留出序列。</p>
+  <p>数据库是本环境能拿到的 Greengenes 13_8（2013）和 SILVA 128（2016）。SILVA 138 和 GTDB 本环境下载不了，没有评估。这些是计算机模拟，没有做实验，也没有检查对人基因组和线粒体的特异性。</p>
+</header>
+
+<h2>一、每个位点的结果</h2>
+<p>位置和长度不变，所以扩增子定义、SMURF 切除引物的长度都不用改。覆盖率按“最多 1 个错配、3′ 端 3 个碱基必须匹配”，主要门指 12 个，各占相同权重。下表是 10 个位点的平均值（验证集，不是设计集）。</p>
+<div class="tbl"><table><thead><tr><th>配置</th><th>每个位点寡核苷酸数</th><th>每个位点总简并数</th><th>SILVA 验证 主要门平均</th><th>SILVA 验证 最差门</th><th>GG 留出 主要门平均</th><th>GG 留出 最差门</th></tr></thead><tbody><tr><td class="">原引物</td><td class="n">1.0</td><td class="n">1.4</td><td class="n">76%</td><td class="n">31%</td><td class="n">77%</td><td class="n">32%</td></tr><tr><td class="">1条 ≤4简并</td><td class="n">1.0</td><td class="n">3.7</td><td class="n">86%</td><td class="n">51%</td><td class="n">86%</td><td class="n">54%</td></tr><tr><td class="">1条 ≤16简并</td><td class="n">1.0</td><td class="n">11.4</td><td class="n">90%</td><td class="n">60%</td><td class="n">91%</td><td class="n">63%</td></tr><tr><td class="">2条 各≤4</td><td class="n">2.0</td><td class="n">7.4</td><td class="n">89%</td><td class="n">57%</td><td class="n">90%</td><td class="n">59%</td></tr><tr><td class="">3条 各≤4</td><td class="n">3.0</td><td class="n">11.4</td><td class="n">91%</td><td class="n">67%</td><td class="n">92%</td><td class="n">70%</td></tr></tbody></table></div>
+<ul>
+<li>只加简并碱基（每个位点仍是 1 条寡核苷酸，简并度限制在 4 倍以内），SILVA 验证集上主要门平均覆盖率从 76% 升到 86%，“最差门”（每个位点最差门覆盖率的平均）从 31% 升到 52%。放宽到 16 倍简并，分别是 90% 和 60%。</li>
+<li>总简并数相同（平均约 11 种寡核苷酸）时，每个位点放 3 条引物（各 ≤4 倍简并）比单条 16 倍简并更好：主要门平均 91.5% 对 90.3%，最差门 67% 对 60%（SILVA 验证）。放 2 条引物（平均 7.4 种）介于两者之间。</li>
+<li>总简并数越高，每种寡核苷酸在混合物里的有效浓度越低，非特异性扩增的风险也会上升，这里没有评估。</li>
+</ul>
+<h3>每个引物</h3>
+<div class="tbl"><table><thead><tr><th>引物</th><th>位置</th><th>最差主要门：原 → 1 条 ≤16 简并 → 3 条</th><th>主要门平均：原 → 1 条 ≤16 简并 → 3 条</th></tr></thead><tbody><tr><td class="">R1-F</td><td class="n">103-120</td><td class="n">5% → 51% → 34%</td><td class="n">55% → 87% → 84%</td></tr><tr><td class="">R1-R</td><td class="n">314-332</td><td class="n">1% → 58% → 54%</td><td class="n">69% → 88% → 87%</td></tr><tr><td class="">R2-F</td><td class="n">338-355</td><td class="n">3% → 82% → 82%</td><td class="n">78% → 95% → 96%</td></tr><tr><td class="">R2-R</td><td class="n">519-536</td><td class="n">92% → 92% → 95%</td><td class="n">96% → 97% → 98%</td></tr><tr><td class="">R3-F</td><td class="n">685-702</td><td class="n">1% → 7% → 69%</td><td class="n">64% → 82% → 89%</td></tr><tr><td class="">R3-R</td><td class="n">908-927</td><td class="n">93% → 97% → 97%</td><td class="n">97% → 98% → 99%</td></tr><tr><td class="">R4-F</td><td class="n">944-964</td><td class="n">30% → 86% → 86%</td><td class="n">76% → 92% → 94%</td></tr><tr><td class="">R4-R</td><td class="n">1087-1104</td><td class="n">14% → 47% → 42%</td><td class="n">72% → 84% → 83%</td></tr><tr><td class="">R5-F</td><td class="n">1175-1193</td><td class="n">72% → 79% → 80%</td><td class="n">86% → 95% → 96%</td></tr><tr><td class="">R5-R</td><td class="n">1374-1391</td><td class="n">3% → 4% → 30%</td><td class="n">69% → 87% → 89%</td></tr></tbody></table></div>
+<p>R1 的两条引物、R3-F 和 R5-R 的最差门提升仍然有限，说明这几个位点本身的序列在某些门里差异大，加简并解决不了，需要换位置。</p>
+
+<h2>二、整套方案层面的效果</h2>
+<p>在近全长序列上，每个区域要求正反引物同时匹配。“信息量”是该序列被扩出的区域所测到的碱基位置的保守度熵之和（按 2×126 bp 读长，去掉引物）。</p>
+<div class="tbl"><table><thead><tr><th>验证集</th><th>配置</th><th>各区域扩增子覆盖 R1/R2/R3/R4/R5 %</th><th>平均扩出区域数</th><th>≥1 个区域</th><th>≥3 个区域</th><th>5 个全部</th><th>每条序列平均信息量（bit）</th><th>≥1 个区域：最差门</th><th>≥3 个区域：最差门</th></tr></thead><tbody><tr><td class="">SILVA(48k)</td><td class="">原引物</td><td class="n">36/78/56/58/67</td><td class="n">2.96</td><td class="n">87%</td><td class="n">65%</td><td class="n">17%</td><td class="n">383</td><td class="">80%（Planctomycetes）</td><td class="">3%（Planctomycetes）</td></tr><tr><td class="">SILVA(48k)</td><td class="">1条 ≤4简并</td><td class="n">62/82/66/63/76</td><td class="n">3.50</td><td class="n">87%</td><td class="n">78%</td><td class="n">36%</td><td class="n">466</td><td class="">96%（Tenericutes）</td><td class="">50%（Planctomycetes）</td></tr><tr><td class="">SILVA(48k)</td><td class="">1条 ≤16简并</td><td class="n">72/86/76/71/78</td><td class="n">3.83</td><td class="n">90%</td><td class="n">84%</td><td class="n">48%</td><td class="n">513</td><td class="">98%（Planctomycetes）</td><td class="">60%（Planctomycetes）</td></tr><tr><td class="">SILVA(48k)</td><td class="">2条 各≤4</td><td class="n">70/83/76/69/77</td><td class="n">3.76</td><td class="n">88%</td><td class="n">83%</td><td class="n">46%</td><td class="n">504</td><td class="">97%（Tenericutes）</td><td class="">53%（Planctomycetes）</td></tr><tr><td class="">SILVA(48k)</td><td class="">3条 各≤4</td><td class="n">72/84/78/70/79</td><td class="n">3.83</td><td class="n">88%</td><td class="n">84%</td><td class="n">49%</td><td class="n">513</td><td class="">98%（Tenericutes）</td><td class="">61%（Planctomycetes）</td></tr><tr><td class="">GG留出(12k)</td><td class="">原引物</td><td class="n">42/88/62/64/73</td><td class="n">3.29</td><td class="n">98%</td><td class="n">72%</td><td class="n">19%</td><td class="n">428</td><td class="">81%（Planctomycetes）</td><td class="">3%（Planctomycetes）</td></tr><tr><td class="">GG留出(12k)</td><td class="">1条 ≤4简并</td><td class="n">68/94/72/71/84</td><td class="n">3.90</td><td class="n">99%</td><td class="n">87%</td><td class="n">39%</td><td class="n">519</td><td class="">98%（Planctomycetes）</td><td class="">54%（Bacteroidetes）</td></tr><tr><td class="">GG留出(12k)</td><td class="">1条 ≤16简并</td><td class="n">81/95/83/81/86</td><td class="n">4.26</td><td class="n">99%</td><td class="n">93%</td><td class="n">52%</td><td class="n">570</td><td class="">98%（Planctomycetes）</td><td class="">66%（Planctomycetes）</td></tr><tr><td class="">GG留出(12k)</td><td class="">2条 各≤4</td><td class="n">78/95/83/79/86</td><td class="n">4.20</td><td class="n">99%</td><td class="n">93%</td><td class="n">50%</td><td class="n">562</td><td class="">98%（Planctomycetes）</td><td class="">58%（Planctomycetes）</td></tr><tr><td class="">GG留出(12k)</td><td class="">3条 各≤4</td><td class="n">80/95/86/80/88</td><td class="n">4.29</td><td class="n">100%</td><td class="n">94%</td><td class="n">54%</td><td class="n">574</td><td class="">100%（Proteobacteria）</td><td class="">70%（Planctomycetes）</td></tr></tbody></table></div>
+<ul>
+<li>5 个区域全部扩出的序列比例从 17%（SILVA）/ 19%（GG 留出）提高到 46–49% / 50–54%（“1 条 ≤4 简并”只到 36% / 39%）。</li>
+<li>能扩出至少 3 个区域的序列从 66% / 72% 提高到 83–84% / 93–94%；平均每条序列扩出的区域数从 3.0 增加到 3.8。</li>
+<li>至少扩出 1 个区域的序列在 SILVA 上只从 86.5% 升到 87–90%：剩下约 10% 的序列（如 SILVA 里被我归类为 OctSpA1-106 的一大类）在所有位点都失配，不是靠简并能解决的。</li>
+</ul>
+
+<h2>三、具体序列</h2>
+<p>多条引物用 | 分隔，反向引物按 5′→3′ 给出。</p>
+<div class="tbl"><table><thead><tr><th>引物</th><th>配置</th><th>寡核苷酸数</th><th>总简并数</th><th>序列 5′→3′（多条用 | 分隔）</th></tr></thead><tbody><tr><td class="">R1-F</td><td class="">原引物</td><td class="n">1</td><td class="n">1</td><td class="seq">TGGCGAACGGGTGAGTAA</td></tr><tr><td class="">R1-F</td><td class="">1条 ≤16简并</td><td class="n">1</td><td class="n">16</td><td class="seq">YGGCGRAMGGGTGMGTAA</td></tr><tr><td class="">R1-F</td><td class="">2条 各≤4</td><td class="n">2</td><td class="n">8</td><td class="seq">YGGCGRACGGGTGAGTAA | TGGCGSACGGGTGMGTAA</td></tr><tr><td class="">R1-F</td><td class="">3条 各≤4</td><td class="n">3</td><td class="n">12</td><td class="seq">YGGCGRACGGGTGAGTAA | TGGCGSACGGGTGMGTAA | TGGCGGAMGGGTGAGKAA</td></tr><tr><td class="">R1-R</td><td class="">原引物</td><td class="n">1</td><td class="n">2</td><td class="seq">CCGTGTCTCAGTCCCARTG</td></tr><tr><td class="">R1-R</td><td class="">1条 ≤16简并</td><td class="n">1</td><td class="n">12</td><td class="seq">CCGTRTCTCAGTYCCADTG</td></tr><tr><td class="">R1-R</td><td class="">2条 各≤4</td><td class="n">2</td><td class="n">6</td><td class="seq">CCGTGTCTCAGTCCCADTG | CCGTGTCTCAGTBCCAGTG</td></tr><tr><td class="">R1-R</td><td class="">3条 各≤4</td><td class="n">3</td><td class="n">10</td><td class="seq">CCGTGTCTCAGTCCCADTG | CCGTGTCTCAGTBCCAGTG | CCGTRTCTCAGTCCCAKTG</td></tr><tr><td class="">R2-F</td><td class="">原引物</td><td class="n">1</td><td class="n">1</td><td class="seq">ACTCCTACGGGAGGCAGC</td></tr><tr><td class="">R2-F</td><td class="">1条 ≤16简并</td><td class="n">1</td><td class="n">16</td><td class="seq">ACWYCTAMGGGAGGCWGC</td></tr><tr><td class="">R2-F</td><td class="">2条 各≤4</td><td class="n">2</td><td class="n">8</td><td class="seq">ACWCCTACGGGAGGCWGC | ACTYCTACGGGAGGCASC</td></tr><tr><td class="">R2-F</td><td class="">3条 各≤4</td><td class="n">3</td><td class="n">12</td><td class="seq">ACWCCTACGGGAGGCWGC | ACTYCTACGGGAGGCASC | AYTCCTACGGGAGGCARC</td></tr><tr><td class="">R2-R</td><td class="">原引物</td><td class="n">1</td><td class="n">1</td><td class="seq">GTATTACCGCGGCTGCTG</td></tr><tr><td class="">R2-R</td><td class="">1条 ≤16简并</td><td class="n">1</td><td class="n">2</td><td class="seq">GTATTACCGCGRCTGCTG</td></tr><tr><td class="">R2-R</td><td class="">2条 各≤4</td><td class="n">2</td><td class="n">6</td><td class="seq">GTATTACCGCGRCTGCTG | GTRTTACCGCGGCTGYTG</td></tr><tr><td class="">R2-R</td><td class="">3条 各≤4</td><td class="n">3</td><td class="n">10</td><td class="seq">GTATTACCGCGRCTGCTG | GTRTTACCGCGGCTGYTG | GTWTTACCGCGGCTGMTG</td></tr><tr><td class="">R3-F</td><td class="">原引物</td><td class="n">1</td><td class="n">2</td><td class="seq">GTGTAGCGGTGRAATGCG</td></tr><tr><td class="">R3-F</td><td class="">1条 ≤16简并</td><td class="n">1</td><td class="n">12</td><td class="seq">GTGTAGCGGTGRAATKCD</td></tr><tr><td class="">R3-F</td><td class="">2条 各≤4</td><td class="n">2</td><td class="n">7</td><td class="seq">GTGTAGCGGTGRAATKCG | GTGTAGCGGTGAAATGCD</td></tr><tr><td class="">R3-F</td><td class="">3条 各≤4</td><td class="n">3</td><td class="n">11</td><td class="seq">GTGTAGCGGTGRAATKCG | GTGTAGCGGTGAAATGCD | GTGTAGCGGTGAAATSYG</td></tr><tr><td class="">R3-R</td><td class="">原引物</td><td class="n">1</td><td class="n">2</td><td class="seq">CCCGTCAATTCMTTTGAGTT</td></tr><tr><td class="">R3-R</td><td class="">1条 ≤16简并</td><td class="n">1</td><td class="n">4</td><td class="seq">CCCGTCAATTYCTTTRAGTT</td></tr><tr><td class="">R3-R</td><td class="">2条 各≤4</td><td class="n">2</td><td class="n">8</td><td class="seq">CCCGTCAATTYCTTTRAGTT | CCCGTCAATTCCTTTGARTY</td></tr><tr><td class="">R3-R</td><td class="">3条 各≤4</td><td class="n">3</td><td class="n">12</td><td class="seq">CCCGTCAATTYCTTTRAGTT | CCCGTCAATTCCTTTGARTY | CCCGTCWATTCCTTTGAGYT</td></tr><tr><td class="">R4-F</td><td class="">原引物</td><td class="n">1</td><td class="n">2</td><td class="seq">GGAGCATGTGGWTTAATTCGA</td></tr><tr><td class="">R4-F</td><td class="">1条 ≤16简并</td><td class="n">1</td><td class="n">16</td><td class="seq">GGAKCATGYGGYTTAATTYGA</td></tr><tr><td class="">R4-F</td><td class="">2条 各≤4</td><td class="n">2</td><td class="n">8</td><td class="seq">GGAGCATGYGGYTTAATTCGA | GGAKCATGTGGTTTAATTYGA</td></tr><tr><td class="">R4-F</td><td class="">3条 各≤4</td><td class="n">3</td><td class="n">12</td><td class="seq">GGAGCATGYGGYTTAATTCGA | GGAKCATGTGGTTTAATTYGA | GGAGYATGTGGTTYAATTCGA</td></tr><tr><td class="">R4-R</td><td class="">原引物</td><td class="n">1</td><td class="n">1</td><td class="seq">CGTTGCGGGACTTAACCC</td></tr><tr><td class="">R4-R</td><td class="">1条 ≤16简并</td><td class="n">1</td><td class="n">12</td><td class="seq">CGTTRCRGGACTTAACCB</td></tr><tr><td class="">R4-R</td><td class="">2条 各≤4</td><td class="n">2</td><td class="n">7</td><td class="seq">CGTTRCGGGACTTAACCY | CGTTGCGGGACTTAACCV</td></tr><tr><td class="">R4-R</td><td class="">3条 各≤4</td><td class="n">3</td><td class="n">11</td><td class="seq">CGTTRCGGGACTTAACCY | CGTTGCGGGACTTAACCV | CGTTGCGGGACTTAAYSC</td></tr><tr><td class="">R5-F</td><td class="">原引物</td><td class="n">1</td><td class="n">1</td><td class="seq">GGAGGAAGGTGGGGATGAC</td></tr><tr><td class="">R5-F</td><td class="">1条 ≤16简并</td><td class="n">1</td><td class="n">12</td><td class="seq">GGAGGAAGGTGRGGAYGAB</td></tr><tr><td class="">R5-F</td><td class="">2条 各≤4</td><td class="n">2</td><td class="n">8</td><td class="seq">GGAGGAAGGTGGGGAYGAY | GGAGGAAGGTGRGGATGAS</td></tr><tr><td class="">R5-F</td><td class="">3条 各≤4</td><td class="n">3</td><td class="n">12</td><td class="seq">GGAGGAAGGTGGGGAYGAY | GGAGGAAGGTGRGGATGAS | GKAGGAAGGYGGGGATGAC</td></tr><tr><td class="">R5-R</td><td class="">原引物</td><td class="n">1</td><td class="n">1</td><td class="seq">AAGGCCCGGGAACGTATT</td></tr><tr><td class="">R5-R</td><td class="">1条 ≤16简并</td><td class="n">1</td><td class="n">12</td><td class="seq">AAGVCCCGRGAACGYATT</td></tr><tr><td class="">R5-R</td><td class="">2条 各≤4</td><td class="n">2</td><td class="n">8</td><td class="seq">AAGRCCCGRGAACGTATT | AAGSCCCGRGAACGTATT</td></tr><tr><td class="">R5-R</td><td class="">3条 各≤4</td><td class="n">3</td><td class="n">12</td><td class="seq">AAGRCCCGRGAACGTATT | AAGSCCCGRGAACGTATT | AAGGCCCRGGAACRTATT</td></tr></tbody></table></div>
+
+<h2>四、落地时必须改的地方</h2>
+<ul>
+<li><b>k-mer 数据库必须用新引物重建。</b>现有数据库里“某条参考序列在某区域是否被扩增”是按旧引物（≤2 错配）判定的。新引物让更多序列能扩增，但数据库仍把它们标成“不扩增”，SMURF 就认不出这些序列。<code>smurf5r.build_region_db_from_fasta</code> 已支持每个位点多条引物（传 list）。</li>
+<li><b>区域分配</b>：<code>smurf5r.split_to_regions</code> 同样接受每个位点多条引物。MATLAB 版的 <code>get_configs.m</code> / <code>read_unireads_save_split_to_regions.m</code> 目前一个位点只处理一条引物字符串，需要改成逐条展开再拼接。</li>
+<li><b>所有变体必须等长</b>：这里每个位点的各条引物长度相同，才能保持“切除固定长度的引物”这一步不变。</li>
+<li>引物浓度：多条引物和高简并引物需要按各变体在混合物里的浓度做配比，并用已知组成的标准菌群（mock community）验证。</li>
+</ul>
+
+<h2>五、换成更新的数据库</h2>
+<p>在你本地拿到 SILVA 138.2 或 GTDB 的 16S FASTA 和分类文件后：</p>
+<pre style="overflow-x:auto;background:var(--surface);border:1px solid var(--line);padding:12px;border-radius:8px"><code>import primer_design as pdz, iterate_5R as it
+ref0 = pdz.load_reference(GG_DIR)                       # 取 E. coli 坐标参照 ref0.ref_seq
+S = pdz.reference_from_sequences(seqs, domain, phylum, ref0.ref_seq)   # seqs/domain/phylum: {id: ...}
+# 把 S 作为设计与验证集（或再留一部分做验证），调用 it.run(R, S, H, out_prefix)</code></pre>
+
+<footer>脚本：<code>python_5R/iterate_5R.py</code>、<code>python_5R/primer_design.py</code>、<code>python_5R/smurf5r.py</code>；数据：<code>docs/primer_design/iter5R_primers.csv</code>、<code>iter_scheme.csv</code>。</footer>
+</main></div>

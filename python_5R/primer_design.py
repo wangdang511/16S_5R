@@ -685,3 +685,18 @@ def optimize_pools(F_sites, R_sites, n_pools=2, amp_range=(180, 250), min_gap=20
             a["vc"][v] = m.mean()
     vc = {v: c.mean() for v, c in covered.items()}
     return {"sol": sol, "vc": vc, "score": sum(weights[v] * c for v, c in vc.items())}
+
+
+def reference_from_sequences(seqs, domain, phylum, ref_seq, n_jobs=4):
+    """
+    用任意 16S 序列集合（例如 SILVA 138.2 / GTDB 的 FASTA）构建 Reference。
+    seqs: {id: sequence}；domain / phylum: {id: str}；ref_seq: E. coli 坐标参照（load_reference(...).ref_seq）。
+    每条序列与参照做两两全局比对，得到 E. coli 位置 1..1542 上的碱基矩阵。
+    """
+    from multiprocessing import Pool
+    ids = list(seqs)
+    raw = [re.sub("[^ACGTN]", "N", seqs[i].upper().replace("U", "T")) for i in ids]
+    with Pool(n_jobs) as pool:
+        rows = pool.map(_project_one, [(ref_seq, s) for s in raw], chunksize=50)
+    return Reference(np.vstack(rows), ids, np.array([domain[i] for i in ids]), np.array([phylum[i] for i in ids]),
+                     {p: p - 1 for p in range(1, 1543)}, ref_seq, {})

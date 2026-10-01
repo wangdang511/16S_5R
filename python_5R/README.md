@@ -5,6 +5,7 @@
 | `smurf5r.py` | 与 `mFiles/*.m` 一一对应的 Python 实现（每个函数注释中标明对应的 .m 文件），另含引物覆盖度评估与从 FASTA 构建 5R 数据库的工具 |
 | `primer_design.py` / `design_primers.py` | 引物重设计：把参考序列投影到 E. coli 坐标、扫描保守位点、按“同管引物位点不重叠”精确求解 1/2 管平铺、Tm 调整与二聚体检查 |
 | `silva_ref.py` | 把 SILVA 128（bioconda `sepp-refsilva128` 里的 99% OTU 比对）投影到 E. coli 坐标，并用 Greengenes 训练的 8-mer 分类器推断门，用于引物交叉验证 |
+| `iterate_5R.py` | 在现有 5R 的 10 个位点上做简并碱基迭代与同位点多引物（位置和长度不变），设计集与验证集分开 |
 | `make_notebook.py` | 生成 `../notebooks/5R_SMURF_step_by_step.ipynb` |
 | `../notebooks/5R_SMURF_step_by_step.ipynb` | 逐步复现 + 与官方 `example_results/` 比对 + 扩展分析（已执行，含输出） |
 | `../docs/primer_redesign.html` | 引物重设计结果（加入 V4）与现有 5R 的坐标核对 |

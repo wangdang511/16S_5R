@@ -70,7 +70,9 @@ class Config:
 
     @property
     def primers_len(self):
-        return np.array([[len(f), len(r)] for f, r in self.primers])
+        # 同一位点可放多条引物（str 或 list[str]），要求等长：切除引物的长度固定
+        first = lambda x: x[0] if isinstance(x, (list, tuple)) else x
+        return np.array([[len(first(f)), len(first(r))] for f, r in self.primers])
 
     def db_file_prefix(self, db_name="GreenGenes_201305", max_non_acgt=3):
         return (f"{db_name}_unique_up_to_{max_non_acgt}_ambiguous_16S"
@@ -122,6 +124,16 @@ def expand_degenerate(seq: str, max_non_acgt=3):
 
 def revcomp(seq: str) -> str:
     return seq.encode().translate(_COMP)[::-1].decode()
+
+
+def primer_variants(primers, max_non_acgt=99):
+    """一个位点的全部具体序列：primers 可以是一条（可含简并碱基）或多条引物组成的 list"""
+    if isinstance(primers, str):
+        primers = [primers]
+    out = []
+    for p in primers:
+        out += expand_degenerate(p, max_non_acgt)
+    return list(dict.fromkeys(out))
 
 
 def to_u8(strings, width=None):
@@ -254,8 +266,8 @@ def split_to_regions(Suni, freq, cfg: Config, stats: ReadsStats | None = None):
     regions = []
     mapped_any = np.zeros(len(freq), bool)
     for rr, (fp, rp) in enumerate(cfg.primers, start=1):
-        fps = to_u8(expand_degenerate(fp))
-        rps = to_u8([revcomp(x) for x in expand_degenerate(rp)])
+        fps = to_u8(primer_variants(fp))
+        rps = to_u8([revcomp(x) for x in primer_variants(rp)])
         flen, rlen = fps.shape[1], rps.shape[1]
         head, end = S[:, :flen], S[:, -rlen:]
         notN_h, notN_e = head != ord("N"), end != ord("N")
@@ -672,8 +684,8 @@ def build_region_db_from_fasta(seqs: dict, cfg: Config, rr: int, max_amplicon=60
     seqs: {header: sequence}
     """
     fp, rp = cfg.primers[rr - 1]
-    F = to_u8(expand_degenerate(fp))
-    R = to_u8([revcomp(x) for x in expand_degenerate(rp)])
+    F = to_u8(primer_variants(fp))
+    R = to_u8([revcomp(x) for x in primer_variants(rp)])
     k = cfg.db_kmer_len
     vals, ind, pm = {}, [], []
     for h, s in seqs.items():
