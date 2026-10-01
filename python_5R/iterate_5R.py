@@ -30,16 +30,21 @@ def hit_any(M, primers_top, side):
     return h
 
 
-def design_set(M, ph, side, k, max_fold, max_degen, key=pdz.KEY_PHYLA):
-    """贪心：每一轮针对尚未被覆盖的序列设计一条简并引物（主要门等权）"""
+def design_set(M, ph, side, k, max_fold, max_degen, key=pdz.KEY_PHYLA, initial=None):
+    """
+    贪心：每一轮针对尚未被覆盖的序列设计一条简并引物（主要门等权）。
+    initial: 已有引物（顶链方向）列表，作为集合的第一批成员；之后只为没被覆盖的序列追加引物，所以不会比 initial 差。
+    """
     lab = np.where(np.isin(ph, key), ph, "__other__")
     w = np.zeros(len(M))
     for g in np.unique(lab):
         m = lab == g
         w[m] = 1.0 / m.sum()
     covered = np.zeros(len(M), bool)
-    out = []
-    for _ in range(k):
+    out = list(initial or [])
+    for top in out:
+        covered |= pdz._match(M, top, side)
+    for _ in range(k - len(out)):
         wi = w * (~covered)
         if wi.sum() <= 0:
             break
