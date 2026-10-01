@@ -1,0 +1,403 @@
+<title>5R SMURF 流程解析</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (~70ch) with full-bleed figures; a sticky step index on wide screens.
+   Color: lab-paper neutrals tinted toward the cobalt accent; nucleotide colors (A/C/G/T, chromatogram convention) as the subject detail. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6675; --line:#d7dde5;
+  --accent:#2747c8; --accent-soft:#e3e8fb;
+  --A:#1f8a4c; --C:#2f62d6; --G:#b07800; --T:#c8372d;
+  --ok:#1f8a4c; --warn:#b07800; --bad:#c8372d;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}.toc{display:none}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:13px;line-height:1.5}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 10px;border-left:2px solid var(--line)}
+.toc a:hover,.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent);outline:none}
+.toc .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+main{min-width:0}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(30px,5vw,44px);line-height:1.2;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--serif);font-weight:800;font-size:26px;line-height:1.3;margin:64px 0 8px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-size:18px;font-weight:700;margin:32px 0 6px}
+p,li{max-width:68ch}
+p{margin:10px 0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+.seq{font-family:var(--mono);letter-spacing:.04em;font-size:13px;white-space:nowrap}
+.sA{color:var(--A)}.sC{color:var(--C)}.sG{color:var(--G)}.sT{color:var(--T)}.sX{color:var(--accent);font-weight:600}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0;overflow-x:auto}
+.figure figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:none}
+svg text{font-family:var(--sans)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.fact{border-top:2px solid var(--ink);padding-top:8px}
+.fact b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.n{text-align:right;font-family:var(--mono);font-size:13px}
+.tbl{overflow-x:auto;margin:14px 0}
+
+/* pipeline steps */
+.steps{list-style:none;padding:0;margin:20px 0;display:grid;gap:0;counter-reset:st}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;position:relative;padding-bottom:26px}
+.step:before{counter-increment:st;content:counter(st);width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--mono);z-index:1}
+.step:after{content:"";position:absolute;left:17px;top:38px;bottom:0;width:2px;background:var(--line)}
+.step:last-child:after{display:none}
+.step h3{margin:4px 0 2px}
+.step .file{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.step .io{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface);white-space:nowrap}
+.pill.k{border-color:var(--accent);color:var(--accent)}
+
+.formula{font-family:var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;font-size:14px;line-height:1.9}
+.note{border-left:3px solid var(--warn);padding:6px 14px;margin:14px 0;background:var(--surface);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p,.card li{font-size:14.5px}
+.card ul{padding-left:18px;margin:6px 0}
+.pri{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:4px;margin-right:6px;vertical-align:2px}
+.p1{background:var(--bad);color:var(--surface)}.p2{background:var(--warn);color:var(--surface)}.p3{background:var(--muted);color:var(--surface)}
+.bugs td:first-child{white-space:nowrap}
+.heat td.h{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink)}
+footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:no-preference){.toc a{transition:color .15s,border-color .15s}}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="目录">
+  <div class="lbl">目录</div>
+  <a href="#overview">概览</a>
+  <a href="#map">5 个扩增区域</a>
+  <a href="#flow">流程总览</a>
+  <a href="#reads">Reads 处理</a>
+  <a href="#db">k-mer 数据库</a>
+  <a href="#model">似然模型</a>
+  <a href="#solve">求解与分组</a>
+  <a href="#output">注释与输出</a>
+  <a href="#repro">Python 复现</a>
+  <a href="#issues">代码问题</a>
+  <a href="#primers">建议：引物</a>
+  <a href="#algo">建议：算法</a>
+  <a href="#database">建议：数据库</a>
+  <a href="#roadmap">路线图</a>
+</nav>
+
+<main>
+<header id="overview">
+  <div class="eyebrow">代码解析 · 16S_5R</div>
+  <h1>5R / SMURF 流程解析</h1>
+  <p class="lede">5 对引物在一次多重 PCR 中扩增 16S rRNA 的 5 个短区域，SMURF 再把五个区域的 reads 放进同一个似然模型联合求解，得到接近全长 16S 的物种分辨率。本页按代码执行顺序拆解每一步，并给出引物、算法与数据库三方面的改进建议。</p>
+  <div class="facts">
+    <div class="fact"><b>5</b><span>多重扩增区域 V2 · V3 · V5 · V6 · V8</span></div>
+    <div class="fact"><b>1,402,801</b><span>参考序列（GreenGenes 13_5）</span></div>
+    <div class="fact"><b>2 × 126 nt</b><span>示例数据读长（kmer_len）</span></div>
+    <div class="fact"><b>328 / 328</b><span>Python 复现与官方结果一致的物种</span></div>
+  </div>
+  <p>方法出处：Fuks G. et al. <i>Combining 16S rRNA gene variable regions enables high-resolution microbial community profiling.</i> Microbiome 6:17 (2018)。仓库为 MATLAB 实现（<code>mFiles/</code>，约 1,000 行），另附 Linux 编译版和 GreenGenes 预建 k-mer 库（<code>GG_5R/</code>，约 120 MB）。</p>
+</header>
+
+<section id="map">
+<h2>5 个扩增区域在 16S 上的位置</h2>
+<p>坐标为 <i>E. coli</i> 16S 编号（近似值）。扩增子长度由数据库中的 <code>match_pos_fwd / match_pos_rvs</code> 估算。所有扩增子都短于 2 × 126 = 252 nt，所以双端 reads 在每个区域都有重叠，R4 重叠最多（约 90 nt）。</p>
+<figure class="figure">
+<svg viewBox="0 0 880 210" width="100%" style="min-width:640px" role="img" aria-label="16S rRNA 基因上 V1–V9 可变区与 5 个扩增子的位置">
+  <g transform="translate(30,0)">
+    <text x="0" y="22" font-size="12" fill="var(--muted)">16S rRNA 基因（1–1542 nt）</text>
+    <rect x="0" y="34" width="820" height="18" rx="3" fill="var(--line)"/>
+    <!-- V regions: x = pos*820/1542 -->
+    <g fill="var(--muted)" opacity=".55">
+      <rect x="36.7" y="34" width="16" height="18"/><rect x="72.9" y="34" width="55.8" height="18"/>
+      <rect x="230.3" y="34" width="34" height="18"/><rect x="306.3" y="34" width="56.4" height="18"/>
+      <rect x="437.1" y="34" width="30.3" height="18"/><rect x="524.3" y="34" width="30.3" height="18"/>
+      <rect x="593.9" y="34" width="29.8" height="18"/><rect x="661.4" y="34" width="27.1" height="18"/>
+      <rect x="763.1" y="34" width="16.5" height="18"/>
+    </g>
+    <g font-size="11" fill="var(--ink)" text-anchor="middle">
+      <text x="44.7" y="68">V1</text><text x="100.8" y="68">V2</text><text x="247.3" y="68">V3</text><text x="334.5" y="68">V4</text>
+      <text x="452.2" y="68">V5</text><text x="539.4" y="68">V6</text><text x="608.8" y="68">V7</text><text x="675" y="68">V8</text><text x="771.4" y="68">V9</text>
+    </g>
+    <!-- amplicons -->
+    <g font-size="12">
+      <rect x="55.3" y="88" width="123.4" height="14" rx="2" fill="var(--accent)"/><text x="55.3" y="120" fill="var(--ink)">R1 104–336 · 232 bp</text>
+      <rect x="179.7" y="134" width="102.6" height="14" rx="2" fill="var(--accent)"/><text x="179.7" y="166" fill="var(--ink)">R2 338–531 · 193 bp</text>
+      <rect x="364.3" y="88" width="129.7" height="14" rx="2" fill="var(--accent)"/><text x="364.3" y="120" fill="var(--ink)">R3 685–929 · 244 bp</text>
+      <rect x="492.4" y="134" width="85.1" height="14" rx="2" fill="var(--accent)"/><text x="492.4" y="166" fill="var(--ink)">R4 926–1086 · 160 bp</text>
+      <rect x="624.8" y="88" width="115.4" height="14" rx="2" fill="var(--accent)"/><text x="624.8" y="120" fill="var(--ink)">R5 1175–1392 · 217 bp</text>
+    </g>
+    <text x="0" y="198" font-size="11" fill="var(--muted)">灰色块为可变区 V1–V9；蓝色条为 5R 扩增子（含引物）。V1、V4、V7、V9 未覆盖。</text>
+  </g>
+</svg>
+</figure>
+
+<div class="tbl"><table>
+<thead><tr><th>区域</th><th>正向引物 5′→3′</th><th>反向引物 5′→3′</th><th>简并展开</th><th>可变区</th></tr></thead>
+<tbody>
+<tr><td>R1</td><td class="seq">TGGCGAACGGGTGAGTAA</td><td class="seq">CCGTGTCTCAGTCCCA<span class="sX">R</span>TG</td><td class="n">1 × 2</td><td>V2</td></tr>
+<tr><td>R2</td><td class="seq">ACTCCTACGGGAGGCAGC</td><td class="seq">GTATTACCGCGGCTGCTG</td><td class="n">1 × 1</td><td>V3</td></tr>
+<tr><td>R3</td><td class="seq">GTGTAGCGGTG<span class="sX">R</span>AATGCG</td><td class="seq">CCCGTCAATTC<span class="sX">M</span>TTTGAGTT</td><td class="n">2 × 2</td><td>V5</td></tr>
+<tr><td>R4</td><td class="seq">GGAGCATGTGG<span class="sX">W</span>TTAATTCGA</td><td class="seq">CGTTGCGGGACTTAACCC</td><td class="n">2 × 1</td><td>V6</td></tr>
+<tr><td>R5</td><td class="seq">GGAGGAAGGTGGGGATGAC</td><td class="seq">AAGGCCCGGGAACGTATT</td><td class="n">1 × 1</td><td>V8</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="flow">
+<h2>流程总览</h2>
+<p>入口为 <code>main_5R(illumina_files_dir, db_dir, db_name, results_filename, kmer_len, generate_group_results)</code>。对每个样本目录调用 <code>main_multiple_regions</code>，最后把所有样本汇总成一张物种丰度表。括号中的数字取自示例样本 RDB1_TTGGTGCA。</p>
+<ol class="steps">
+  <li class="step"><div><h3>配置与载入数据库</h3><div class="file">get_configs.m · main_5R.m</div>
+    <p>设定引物、质量阈值、错误率等参数；载入参考序列编号 <code>Header_uni</code> 与七级分类 <code>taxonomy_db.mat</code>。</p>
+    <div class="io"><span class="pill k">kmer_len = 126</span><span class="pill">pe = 0.005</span><span class="pill">nMM_cut = 2</span><span class="pill">tol = 5e-7</span></div></div></li>
+  <li class="step"><div><h3>拆分样本目录</h3><div class="file">split_files2directories.m · extract_sample_name.m</div>
+    <p>若所有 FASTQ 混在同一目录，按文件名中 <code>_L00x</code> 之前的部分建子目录；自动解压 .zip/.gz。</p></div></li>
+  <li class="step"><div><h3>质量过滤与去重</h3><div class="file">read_fastq_save_unireads.m</div>
+    <p>两端均截取前 126 nt；不含 N；Q&gt;30 的碱基 ≥ 75% 且 Q&lt;10 的碱基 &lt; 3 个。合格的 read 对拼成 <code>[R1 | R2]</code> 后完全去重计数。</p>
+    <div class="io"><span class="pill">299,346 对</span><span class="pill k">→ 286,199 合格（95.6%）</span></div></div></li>
+  <li class="step"><div><h3>按引物分配区域</h3><div class="file">read_unireads_save_split_to_regions.m · unambiguit_one_seq.m</div>
+    <p>R2 反向互补后，开头匹配正向引物、末尾匹配反向引物的反向互补（各 ≤ 2 错配）即归入该区域，随后切除引物。</p>
+    <div class="io"><span class="pill">R1 33,189</span><span class="pill">R2 134,783</span><span class="pill">R3 10,763</span><span class="pill">R4 37,922</span><span class="pill">R5 63,852</span><span class="pill k">98% reads 被分配</span></div></div></li>
+  <li class="step"><div><h3>载入区域 k-mer 库</h3><div class="file">load_bact_DB.m</div>
+    <p>把预存的 160+160 nt k-mer 截成与 read 同形（去引物、每端 126 nt）并去重，得到“参考序列 → 本区域 k-mer”的映射。</p></div></li>
+  <li class="step"><div><h3>构建似然矩阵 A</h3><div class="file">build_A_matrices.m</div>
+    <p>丢弃计数 &lt; max(1e-4 × 区域总数, 2) 的 read；对剩余每条 read 计算与全部 k-mer 的 Hamming 距离，≤ 2 者给出似然。</p>
+    <div class="io"><span class="pill">每区域 258–391 条唯一 read</span><span class="pill k">A 非零元约 970 万</span></div></div></li>
+  <li class="step"><div><h3>过滤、合并、EM 求解</h3><div class="file">solve_iterative_noisy.m · ml_em_iterative.m</div>
+    <p>排除缺少完全匹配 read 的候选；列相同的参考序列合并为 group；删除“被包含”的 group；EM 求最大似然丰度，再除以可扩增区域数。</p>
+    <div class="io"><span class="pill">117,430 条候选序列</span><span class="pill">→ 10,189 个 group</span><span class="pill">→ 1,345 个进入 EM</span><span class="pill k">→ 404 个非零 group</span></div></div></li>
+  <li class="step"><div><h3>分配 reads、注释、汇总</h3><div class="file">reconstruction_func.m · save_reconstruction_new_nogroups.m · scott_format_newer_func.m · build_scott_list_new.m</div>
+    <p>按后验概率把 read 计数分给 group；每个 group 取占比最高的物种名（硬决策）；跨样本合并输出 <code>SPECIES_*.txt</code> 与 <code>ReadCountStats_*.txt</code>。</p>
+    <div class="io"><span class="pill k">286 个物种（RDB1）</span><span class="pill">67 个物种（RDB123）</span></div></div></li>
+</ol>
+</section>
+
+<section id="reads">
+<h2>Reads 处理细节</h2>
+<h3>拼接后的 read 结构</h3>
+<figure class="figure">
+<svg viewBox="0 0 820 120" width="100%" style="min-width:600px" role="img" aria-label="配对 read 拼接与切除引物示意">
+  <rect x="10" y="20" width="60" height="26" fill="var(--G)" opacity=".85"/><text x="40" y="38" text-anchor="middle" font-size="12" fill="var(--surface)">F 引物</text>
+  <rect x="70" y="20" width="330" height="26" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="235" y="38" text-anchor="middle" font-size="12" fill="var(--ink)">R1 前 126 nt</text>
+  <rect x="400" y="20" width="330" height="26" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="565" y="38" text-anchor="middle" font-size="12" fill="var(--ink)">rc(R2 前 126 nt)</text>
+  <rect x="730" y="20" width="62" height="26" fill="var(--G)" opacity=".85"/><text x="761" y="38" text-anchor="middle" font-size="12" fill="var(--surface)">rc(R 引物)</text>
+  <path d="M70 60 v10 h660 v-10" fill="none" stroke="var(--muted)"/>
+  <text x="400" y="88" text-anchor="middle" font-size="12" fill="var(--ink)">进入模型的序列：2·126 − |F| − |R| ≈ 215 nt（引物计入 126 内，此处为示意）</text>
+  <text x="400" y="108" text-anchor="middle" font-size="12" fill="var(--muted)">数据库 k-mer 用完全相同的方式截取：values[:, |F|:126] + values[:, 320−126 : 320−|R|]</text>
+</svg>
+</figure>
+<p>由于扩增子比 252 nt 短，两段之间其实有重叠。代码没有合并双端，而是直接拼接。数据库按同样方式构造，所以模型内部自洽；代价是重叠区的测序错误被计算两次，也错过了用重叠区相互校正的机会。</p>
+<h3>引物匹配规则</h3>
+<p>对每个区域，正向引物的所有简并展开版本与序列开头逐位比较（read 中的 N 不计为错配），取最小错配数；反向引物同理比较序列末尾。两端都 ≤ 2 时归入该区域。一个 read 理论上可同时归入多个区域，但示例中没有出现。</p>
+</section>
+
+<section id="db">
+<h2>k-mer 数据库</h2>
+<p>每个区域一个 <code>.mat</code> 文件，包含以下字段（以 R1 为例）：</p>
+<div class="tbl"><table>
+<thead><tr><th>变量</th><th>形状</th><th>含义</th></tr></thead>
+<tbody>
+<tr><td><code>values</code></td><td class="n">273,135 × 320</td><td>每个唯一扩增子的前 160 nt 与后 160 nt，含引物，正链方向</td></tr>
+<tr><td><code>indInValue</code></td><td class="n">1,402,801 × 1</td><td>参考序列 → <code>values</code> 行号；0 表示引物错配 &gt; 2，不扩增</td></tr>
+<tr><td><code>is_perfect_match</code></td><td class="n">1,402,801 × 1</td><td>两端引物都 0 错配，用于候选过滤</td></tr>
+<tr><td><code>match_pos_*</code>, <code>Header_amp</code>, <code>Dictionary</code></td><td></td><td>构建时的辅助信息，流程中未使用（<code>Dictionary</code> 读入最慢）</td></tr>
+</tbody></table></div>
+<p>截短到 126 nt 后，R1–R5 分别剩约 26 万、20 万、29 万、15 万、20 万个唯一 k-mer。平均每个 k-mer 被 4–7 条参考序列共享，这是单区域分辨率有限的根源，也是联合五个区域的意义所在。</p>
+<p>仓库没有附带构建这些文件的脚本。原始 GreenGenes 序列文件 <code>…_16S.mat</code> 也未随仓库提供，因此 <code>generate_group_results = 1</code> 在默认配置下会因找不到序列文件而报错。</p>
+</section>
+
+<section id="model">
+<h2>似然模型</h2>
+<p>记区域 r 中唯一 read 为 y，参考序列为 j，d 为 read 与 j 在该区域 k-mer 的 Hamming 距离，L 为去引物后的长度：</p>
+<div class="formula">A<sub>r</sub>[y, j] = Pr(y | j) = (1 − p<sub>e</sub>)<sup>L−d</sup> · (p<sub>e</sub>/3)<sup>d</sup>　　当 d ≤ 2；否则为 0　　（p<sub>e</sub> = 0.005）</div>
+<p>五个区域的 A 纵向拼成一个矩阵。观测向量 y<sub>y</sub> 为 read 计数除以所有区域的总计数。每列再除以该参考序列可被扩增的区域数 n<sub>j</sub>，使列和约为 1。于是第 j 列描述“如果所有 reads 都来自 j，它们应如何分布在五个区域的各条 read 上”。</p>
+<p>d=1 的似然约为 d=0 的 1/600，d=2 约为 1/360,000，所以错配在这里起的是“软惩罚”作用：一条 read 若与某参考序列完全匹配，几乎不会再被分给只差 1 个碱基的其他序列。</p>
+</section>
+
+<section id="solve">
+<h2>求解与分组</h2>
+<div class="cards">
+  <div class="card"><h4>① 候选过滤</h4><p>若 j 在区域 r 的两个引物都 0 错配（理论上一定会扩增），则区域 r 必须至少有一条与 j 完全匹配的 read，否则排除 j。j 还必须至少匹配到一条 read。</p></div>
+  <div class="card"><h4>② 合并不可区分者</h4><p>A 中列完全相同的参考序列在这五个区域上无法区分，合并为一个 <b>group</b>，这是输出的最小单位。RDB1 共 10,189 个 group。</p></div>
+  <div class="card"><h4>③ 删除被包含者</h4><p>若 group i 的非零 read 集合是 group j 的真子集，删除 i。这是一种简约性启发式。RDB1 中删去 8,844 个（87%），RDB123 删去 1,577 / 1,831。</p></div>
+  <div class="card"><h4>④ EM 迭代</h4><p>θ = A·x；x<sub>j</sub> ← x<sub>j</sub> · Σ<sub>y</sub> A<sub>yj</sub> · y<sub>y</sub>/θ<sub>y</sub>。初值 x ∝ Aᵀy。当 Σ|1 − factor<sub>j</sub>|·x<sub>j</sub> &lt; 5×10⁻⁷ 时停止，示例约迭代 3,000 次。</p></div>
+  <div class="card"><h4>⑤ 换算丰度</h4><p>x<sub>j</sub> 是 reads 份额。可扩增区域多的细菌贡献的 reads 更多，所以最终丰度为 x<sub>j</sub>/n<sub>j</sub> 归一化。这里未做 16S 拷贝数校正。</p></div>
+  <div class="card"><h4>⑥ 分配 reads</h4><p>按后验 Pr(j | y) ∝ A<sub>yj</sub>·x<sub>j</sub> 把每条 read 的计数分给各 group，四舍五入后汇总为 <code>assigned_reads</code>。</p></div>
+</div>
+</section>
+
+<section id="output">
+<h2>注释与输出</h2>
+<p>一个 group 往往包含数十到上千条参考序列，各自的分类可能不同。<code>save_reconstruction_new_nogroups.m</code> 在 domain 到 species 的每一级统计 group 内各分类所占比例。<code>scott_format_newer_func.m</code> 随后做硬决策：在 species 级，整个 group 的丰度全部记给占比最高的物种名（并列时取字典序最前者），名称中的 <code>Assigned</code> 改为 <code>Unknown</code>。</p>
+<p>GreenGenes 13_5 中 50% 的序列物种名是占位符（<code>Assigned speciesN</code>），19% 的属名是占位符，所以输出里大量出现 <code>Unknown species12</code> 这类条目。它们代表“该属内某个未命名的序列簇”，不同数据库之间不能直接对应。</p>
+</section>
+
+<section id="repro">
+<h2>Python 复现结果</h2>
+<p><code>python_5R/smurf5r.py</code> 按函数对应 MATLAB 代码，<code>notebooks/5R_SMURF_step_by_step.ipynb</code> 逐步运行并展示每一步的中间结果。最耗时的 read 与 k-mer 比对改用鸽巢原理：把序列切成 3 段，距离 ≤ 2 的两条序列至少有一段完全相同，先用 3 张哈希表找候选再精确计算距离。Notebook 中验证了它与暴力比对给出完全相同的结果。每个样本运行约 10 秒（不含载入数据库）。</p>
+<div class="tbl"><table>
+<thead><tr><th>对比项</th><th>RDB123_ATGAGTGC</th><th>RDB1_TTGGTGCA</th></tr></thead>
+<tbody>
+<tr><td>ReadCountStats 28 项计数</td><td>全部相同</td><td>全部相同</td></tr>
+<tr><td>检出物种（MATLAB / Python / 共有）</td><td class="n">67 / 67 / 67</td><td class="n">286 / 286 / 286</td></tr>
+<tr><td>丰度最大绝对差</td><td class="n">3 × 10⁻⁶</td><td class="n">1 × 10⁻⁶</td></tr>
+<tr><td>Total # of reads（MATLAB / Python）</td><td class="n">183,702 / 183,701</td><td class="n">205,605 / 205,599</td></tr>
+</tbody></table></div>
+<p>剩余的微小差异来自 EM 停止点：MATLAB 版每运行 60 秒会剪除一次 x &lt; 10⁻¹⁰ 的列，迭代路径因此与机器速度有关。</p>
+</section>
+
+<section id="issues">
+<h2>代码中发现的问题</h2>
+<div class="tbl"><table class="bugs">
+<thead><tr><th>位置</th><th>问题</th><th>影响</th></tr></thead>
+<tbody>
+<tr><td><code>read_fastq_save_unireads.m:127</code></td><td>R2 的低质量判断写成 <code>sum(q1&lt;10,2)</code>，误用 R1 的质量值</td><td>R2 中 Q&lt;10 的碱基没有被过滤。示例数据 R2 质量高，修正前后结果完全相同；质量差的批次会受影响</td></tr>
+<tr><td><code>ml_em_iterative.m:55</code></td><td>每运行 60 秒剪枝一次，依赖墙钟时间</td><td>同样输入在不同机器上结果可能略有差异</td></tr>
+<tr><td><code>build_A_matrices.m:82</code></td><td><code>debug_dist_mat = zeros(nY, K)</code> 为稠密矩阵且从未使用</td><td>每区域 nY × 约 27 万 × 8 字节；2,000 条唯一 read 即约 4 GB 内存</td></tr>
+<tr><td><code>build_A_matrices.m</code> 主循环</td><td>每条 read 与全部 k-mer 暴力比较</td><td>O(nY · K · L)，深度测序或放宽过滤后很慢</td></tr>
+<tr><td><code>solve_iterative_noisy.m:149</code></td><td><code>full(A'*A)</code> 生成 nB × nB 稠密矩阵</td><td>候选 group 数达 3 万时需约 7 GB</td></tr>
+<tr><td><code>load_bact_DB.m:62,71</code></td><td>调用 <code>rand</code>；若所有序列都可扩增，<code>keep_kmer_ind(2:end)</code> 会丢掉第一个 k-mer</td><td>默认配置下不触发，换数据库或引物时会成为隐患</td></tr>
+<tr><td><code>main_5R.m:77</code></td><td><code>for dd = 3:length(directories)</code> 假设前两项是 . 和 ..</td><td>样本目录名以 <code>!</code>、<code>#</code> 等字符开头时会被跳过</td></tr>
+<tr><td><code>scott_format_newer_func.m:9</code></td><td>区域数写死为 <code>nR = 5</code></td><td>增减区域时统计输出错位</td></tr>
+<tr><td><code>read_unireads_save_split_to_regions.m:43</code></td><td>单端模式直接 <code>error</code></td><td>不支持单端或已合并的 reads</td></tr>
+<tr><td><code>main_multiple_regions.m:21</code></td><td>运行时删除并重建样本内的 <code>resDir</code>；解压后的 FASTQ 处理完会被删除</td><td>结果写回输入目录，无法只读运行，并发运行会互相覆盖</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="primers">
+<h2>改进建议：引物迭代</h2>
+<p>下表是基于数据库的 in-silico 覆盖度（Notebook §10.1）。<b>可扩增</b>指两端引物错配 ≤ 2；括号内为两端 0 错配的比例。</p>
+<div class="tbl"><table class="heat" id="covtbl">
+<thead><tr><th>门</th><th>序列数</th><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>平均区域数</th></tr></thead>
+<tbody></tbody></table></div>
+<div class="cards">
+  <div class="card"><h4><span class="pri p1">高</span>补上古菌与 Bacteroidetes 的缺口</h4>
+    <ul><li>古菌两个门平均可扩增区域数 &lt; 0.02，也就是完全检测不到。若研究涉及肠道产甲烷菌（如 <i>Methanobrevibacter</i>），需要加一对古菌或通用原核引物。</li>
+    <li>Bacteroidetes 在 R1 上 0 错配比例为 0，R4 只有 12% 可扩增，R3 0 错配仅 1%。R1 正向引物和 R4 正向引物应针对该门重新设计简并位点。</li>
+    <li>Planctomycetes 的 R1、R2、R5 覆盖低于 45%；Actinobacteria 的 R4 为 55%。</li></ul></div>
+  <div class="card"><h4><span class="pri p1">高</span>用新数据库重新评估并迭代引物</h4>
+    <ul><li>在 SILVA 138.2 或 GTDB 上做 in-silico PCR（SILVA TestPrime、ecoPCR，或本仓库新增的 <code>build_region_db_from_fasta</code>），按门、属统计覆盖度。</li>
+    <li>统计每个引物位点的错配位置分布。3′ 端最后 3–5 个碱基的错配对扩增效率影响最大，应优先在这些位置加简并。</li>
+    <li>每轮修改后同时检查引物二聚体、Tm 一致性和多重体系中的交叉扩增。</li></ul></div>
+  <div class="card"><h4><span class="pri p2">中</span>考虑增加或替换区域</h4>
+    <ul><li>当前未覆盖 V1、V4、V7、V9。V1 对 <i>Staphylococcus</i>、<i>Cutibacterium</i>、<i>Streptococcus</i> 等皮肤和口腔菌的种水平区分有帮助。</li>
+    <li>V4（515F/806R）是 EMP 等大型项目的标准区域，加入后便于和公开数据比对。</li>
+    <li>模型本身支持任意数量的区域，增加区域的主要成本在多重 PCR 的优化上。代码中 <code>nR = 5</code> 的硬编码需要先改掉。</li></ul></div>
+  <div class="card"><h4><span class="pri p2">中</span>用实验校正区域扩增偏倚</h4>
+    <ul><li>模型假设五个区域扩增效率相同，但示例中 R2 获得的 reads 是 R3 的 6–12 倍。</li>
+    <li>建议用 ZymoBIOMICS 等已知组成的 mock community 估计每个区域、每类错配的扩增效率，再作为权重写进 A 矩阵。</li>
+    <li>每批实验带阴性对照（试剂空白、石蜡空白），FFPE 和低生物量样本尤其需要。</li></ul></div>
+</div>
+</section>
+
+<section id="algo">
+<h2>改进建议：算法</h2>
+<div class="cards">
+  <div class="card"><h4><span class="pri p1">高</span>改用基于质量值的误差模型</h4>
+    <p>现在所有位置使用同一个 p<sub>e</sub> = 0.005，且只允许替换。可改为按每个碱基的 Phred 质量计算似然（DADA2 和 Deblur 的做法），并允许 1–2 nt 的插入缺失，从而把目前因 indel 被丢弃的 reads 找回来（示例中每区域有 17–3,285 条 reads 未匹配）。</p></div>
+  <div class="card"><h4><span class="pri p1">高</span>先合并双端，再在扩增子水平去噪</h4>
+    <p>所有扩增子都短于 252 nt，可以先用 VSEARCH / PEAR / DADA2 合并双端，在重叠区相互校正。再对每个区域生成 ASV，用 ASV 代替原始唯一 read 进入 SMURF。这样能把 1e-4 的低丰度阈值降下来，提高稀有菌的检出。</p></div>
+  <div class="card"><h4><span class="pri p2">中</span>读长不是越长越好</h4>
+    <p>Notebook §10.2 中把 <code>kmer_len</code> 从 100 提到 126，合格 reads 略减，最终 group 数和 group 大小也没有改善，因为多出的碱基主要落在两端重叠区。<code>kmer_len=100</code> 时 EM 在 10,000 次迭代内未收敛。对 5R 扩增子，与其追求更长读长，不如合并双端、按区域设定截取长度，并把最大迭代次数和收敛情况写进日志。</p></div>
+  <div class="card"><h4><span class="pri p2">中</span>按测序深度设定检出下限</h4>
+    <p>稀释实验（§10.3）显示：约 3 万条 reads 可找回 90% 的丰度 ≥0.1% 的物种，1.4 万条时降到 87%，5,700 条时只剩 60%。建议样本至少 3 万条合格 reads，并在报告中标注每个样本的可靠检出下限。</p></div>
+  <div class="card"><h4><span class="pri p2">中</span>重新审视“删除被包含者”</h4>
+    <p>真子集规则在 RDB1 中删掉了 87% 的 group（10,189 → 1,345），删除只依据非零模式，不看似然值。一个真实存在、但某区域没有扩增的细菌可能因此被删掉。建议改为模型选择（比较删除前后的似然或 BIC），或在 EM 中加入稀疏先验，例如 Dirichlet 先验或 L0/L1 惩罚。</p></div>
+  <div class="card"><h4><span class="pri p2">中</span>给出不确定性</h4>
+    <p>EM 只给点估计。可以对 reads 做 bootstrap，或从后验做 MCMC 抽样，给每个 group 的丰度报告置信区间。同时输出 group 大小和多数物种所占比例，提示哪些物种名并不确定。</p></div>
+  <div class="card"><h4><span class="pri p2">中</span>改进分类赋值方式</h4>
+    <p>硬决策会把整个 group 的丰度记给占比最高的物种，即使它只占 30%。可改为 LCA（共同祖先）赋值，只在多数比例超过阈值（如 80%）时给出种名；或者保留按比例拆分的结果，作为第二张表输出。</p></div>
+  <div class="card"><h4><span class="pri p3">低</span>工程与性能</h4>
+    <ul><li>用鸽巢索引或 Bowtie2 代替暴力比对；删除未使用的 <code>debug_dist_mat</code>；被包含判断改用稀疏运算。</li>
+    <li>EM 加 SQUAREM 加速，去掉依赖时间的剪枝，固定随机种子。</li>
+    <li>输出 BIOM / QIIME 2 兼容格式，加 16S 拷贝数校正（rrnDB）。</li>
+    <li>提供 Python / Nextflow 版本，摆脱 MATLAB 许可与 R2019b 运行时依赖。</li></ul></div>
+</div>
+</section>
+
+<section id="database">
+<h2>改进建议：数据库</h2>
+<p>当前使用的 GreenGenes 13_5 发布于 2013 年，之后没有再更新。其中 50% 的物种名是占位符，属和种的命名也与现行分类体系有较大出入。</p>
+<div class="tbl"><table>
+<thead><tr><th>数据库</th><th>特点</th><th>适用场景</th></tr></thead>
+<tbody>
+<tr><td><b>SILVA 138.x</b> SSU Ref NR99</td><td>维护活跃、质量筛选严格，覆盖细菌、古菌和真核生物；物种级注释较弱</td><td>默认首选，用于引物评估和通用研究</td></tr>
+<tr><td><b>GTDB</b>（16S 由基因组提取）</td><td>以基因组系统发育为准的统一分类，种级标签更一致；只收录有基因组的类群</td><td>需要种级名称、要与宏基因组结果对接时</td></tr>
+<tr><td><b>Greengenes2</b>（2022 起）</td><td>把 16S 与全基因组整合到同一棵树，兼容 QIIME 2 生态</td><td>延续 GreenGenes 体系、与其他扩增子数据合并分析</td></tr>
+<tr><td><b>NCBI RefSeq 16S</b> 靶向位点</td><td>以模式菌株为主，物种名可靠但序列数少</td><td>作为种名校验的辅助库</td></tr>
+<tr><td>专用库：<b>eHOMD</b>（口腔、呼吸道）等</td><td>针对特定生境精细整理</td><td>研究对象明确时作为补充</td></tr>
+</tbody></table></div>
+<div class="cards">
+  <div class="card"><h4><span class="pri p1">高</span>补齐建库流程</h4><p>仓库缺少从 FASTA 生成 <code>values / indInValue / is_perfect_match</code> 的脚本，这是更换数据库的主要障碍。新增的 <code>build_region_db_from_fasta</code> 用同样的规则（引物 ≤ 2 错配、取前后各 160 nt）生成相同结构，可以直接接入现有流程。</p></div>
+  <div class="card"><h4><span class="pri p2">中</span>按研究场景裁剪数据库</h4><p>140 万条序列中有大量环境类群。针对人体样本，可以只保留宿主相关类群，或先用全库运行一次、再在检出的属内细化。候选更少时 group 更小，EM 也更稳定。对 FFPE 肿瘤样本，还应建一份常见污染菌清单（如 <i>Ralstonia</i>、<i>Bradyrhizobium</i>、<i>Afipia</i>）。</p></div>
+  <div class="card"><h4><span class="pri p3">低</span>记录数据库版本</h4><p>把数据库名称、版本、引物版本、构建参数写入每份结果文件的表头，并给 k-mer 库计算校验和，保证结果可追溯。</p></div>
+</div>
+</section>
+
+<section id="roadmap">
+<h2>路线图</h2>
+<div class="tbl"><table>
+<thead><tr><th>阶段</th><th>内容</th><th>验收标准</th></tr></thead>
+<tbody>
+<tr><td>1 · 可复现</td><td>修复上表中的问题；固定随机种子；Python 流程与 MATLAB 结果对齐（已完成）</td><td>示例数据输出逐项一致</td></tr>
+<tr><td>2 · 数据库</td><td>用 <code>build_region_db_from_fasta</code> 在 SILVA 138.2 与 GTDB 上建库，与 GreenGenes 13_5 比较</td><td>mock community 的种级召回率、Bray–Curtis 距离</td></tr>
+<tr><td>3 · 引物</td><td>按门统计覆盖与 3′ 端错配；重设计 R1、R4，评估新增古菌或 V1/V4 区域</td><td>Bacteroidetes、古菌覆盖度提升，多重 PCR 无明显二聚体</td></tr>
+<tr><td>4 · 算法</td><td>质量感知似然 + 双端合并 + ASV 输入；EM 稀疏先验与 bootstrap 置信区间</td><td>mock 与稀释实验的灵敏度、假阳性率</td></tr>
+<tr><td>5 · 交付</td><td>Nextflow / Snakemake 封装，输出 BIOM，加入阴性对照去污染（如 decontam）</td><td>端到端运行、CI 中跑示例数据</td></tr>
+</tbody></table></div>
+</section>
+
+<footer>
+  文件：<code>python_5R/smurf5r.py</code>（复现模块）· <code>notebooks/5R_SMURF_step_by_step.ipynb</code>（逐步复现）· <code>docs/5R_SMURF_pipeline.html</code>（本页）。覆盖度数据来自 <code>GG_5R/</code> 数据库的 in-silico 结果，真实扩增效率需实验验证。
+</footer>
+</main>
+</div>
+
+<script>
+// in-silico coverage by phylum (fraction amplifiable ≤2 mm, fraction 0 mm), from notebook §10.1
+const COV = [
+ ["Firmicutes",456548,[.951,.107],[.985,.884],[.975,.884],[.915,.726],[.902,.214],4.73],
+ ["Proteobacteria",403204,[.871,.165],[.985,.929],[.918,.417],[.960,.499],[.957,.307],4.69],
+ ["Actinobacteria",175183,[.985,.317],[.982,.676],[.979,.649],[.551,.173],[.757,.149],4.25],
+ ["Bacteroidetes",162169,[.624,.000],[.983,.916],[.934,.012],[.116,.041],[.800,.008],3.46],
+ ["Chloroflexi",25023,[.539,.012],[.953,.136],[.921,.040],[.676,.000],[.888,.214],3.98],
+ ["Cyanobacteria",21644,[.946,.013],[.963,.701],[.965,.697],[.915,.158],[.927,.045],4.72],
+ ["Acidobacteria",19671,[.790,.091],[.976,.905],[.903,.843],[.699,.400],[.984,.641],4.35],
+ ["Euryarchaeota",16771,[0,0],[0,0],[.008,0],[0,0],[0,0],0.01],
+ ["Planctomycetes",16478,[.405,.001],[.428,.029],[.923,.116],[.638,.001],[.080,.002],2.47],
+ ["Crenarchaeota",14152,[0,0],[0,0],[.014,0],[0,0],[0,0],0.01],
+ ["Spirochaetes",13057,[.782,.212],[.954,.253],[.162,.044],[.869,.777],[.903,.217],3.67],
+ ["Verrucomicrobia",12930,[.697,.002],[.969,0],[.923,.207],[.810,0],[.732,.086],4.13],
+ ["Fusobacteria",11408,[.777,0],[.947,.880],[.756,.001],[.937,.874],[.746,.001],4.16],
+ ["Tenericutes",5307,[.838,.314],[.973,.635],[.899,.126],[.099,.020],[.441,.001],3.25],
+ ["全部",1402801,[.842,.127],[.952,.800],[.916,.535],[.750,.442],[.851,.200],4.31]
+];
+const tb = document.querySelector('#covtbl tbody');
+const mix = v => `color-mix(in srgb, var(--accent) ${Math.round(v*70)}%, transparent)`;
+for (const r of COV){
+  const tr = document.createElement('tr');
+  let h = `<td>${r[0]}</td><td class="n">${r[1].toLocaleString('en-US')}</td>`;
+  for (let i=2;i<7;i++){ const [a,z]=r[i]; h += `<td class="h" style="background:${mix(a)}">${Math.round(a*100)}%<br><span style="color:var(--muted)">(${Math.round(z*100)}%)</span></td>`; }
+  h += `<td class="n">${r[7].toFixed(2)}</td>`;
+  tr.innerHTML = h; tb.appendChild(tr);
+}
+</script>
