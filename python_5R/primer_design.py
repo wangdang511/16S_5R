@@ -270,6 +270,8 @@ def _scan_worker(args):
                 hit = _match(M[data], top, side)
                 phd = ph[data]
                 per = {k: hit[phd == k].mean() for k in key_phyla if (phd == k).sum() >= 10}
+                if not per:                     # 该位点几乎没有序列数据（如 5′ / 3′ 末端），跳过
+                    continue
                 # 全部细菌门等权
                 u, inv, cnt = np.unique(phd, return_inverse=True, return_counts=True)
                 wb = 1.0 / cnt[inv]
