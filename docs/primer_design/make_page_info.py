@@ -7,6 +7,8 @@ head = re.sub(r"<title>.*?</title>", "<title>5R 信息量优化设计</title>", 
 ID = pd.read_csv(f"{HERE}/info_design.csv"); CMP = pd.read_csv(f"{HERE}/info_compare.csv"); SITES = pd.read_csv(f"{HERE}/info_sites.csv")
 V4 = pd.read_csv(f"{HERE}/info_v4.csv"); TM = pd.read_csv(f"{HERE}/info_single_tm.csv"); DIM = json.load(open(f"{HERE}/info_single_dimers.json"))
 DI = json.load(open(f"{HERE}/designs_info.json"))
+SITES4 = pd.read_csv(f"{HERE}/info_sites_v4.csv"); TM4 = pd.read_csv(f"{HERE}/info_single_tm_v4.csv"); DIM4 = json.load(open(f"{HERE}/info_single_dimers_v4.json"))
+DI4 = json.load(open(f"{HERE}/designs_info_v4.json")); EV4 = pd.read_csv(f"{HERE}/info_eval_v4.csv"); PROF = pd.read_csv(f"{HERE}/profile_bact.csv", index_col=0)
 NUMRE = re.compile(r"^[\d.%/ –→-]+$")
 def cell(i, v, seqcol):
     cls = "seq" if i == seqcol else ("n" if NUMRE.match(str(v)) else "")
@@ -53,6 +55,27 @@ v4rows = []
 for _, r in V4[V4.K.isin([4, 5])].iterrows():
     v4rows.append([f"2×{r.read_len}", r.K, r["mode"], f"{r.silva_bits:.0f}", f"{r.gg_bits:.0f}", r.amplicons, r.vregions.replace(":", " ").replace("V", "V")])
 t_v4 = tbl(v4rows, ["读长", "K", "条件", "SILVA 期望信息量", "GG 期望信息量", "扩增子", "各可变区被测到的比例 %"])
+def single_multi(SITES_, TM_, VREG_, DI_):
+    tm_ = TM_.set_index("site")
+    sr = [[r.site, r.pos, r.seqs, tm_.loc[r.site, "len"], tm_.loc[r.site, "fold"], tm_.loc[r.site, "GC"], tm_.loc[r.site, "Tm"], pct(r["SILVA(验证)_mean"]), pct(r["SILVA(验证)_min"]), pct(r["GG留出_mean"]), pct(r["GG留出_min"])] for _, r in SITES_.iterrows() if r.config == "single"]
+    mr = [[r.site, r.pos, r.seqs, r.fold, pct(r["SILVA(验证)_mean"]), pct(r["SILVA(验证)_min"]), pct(r["GG留出_mean"]), pct(r["GG留出_min"])] for _, r in SITES_.iterrows() if r.config == "multi"]
+    ta_ = tbl([[a["name"], a["lo"], a["hi"], a["len"], VREG_[a["name"]], a["nbases"], f"{a['bits']:.0f}"] for a in DI_["amplicons"]], ["扩增子", "起点", "终点", "长度 bp", "完整覆盖的可变区", "测序碱基数", "信息量 bit"])
+    ts_ = tbl(sr, ["引物", "E. coli 位置", "序列 5′→3′", "nt", "简并数", "GC", "Tm °C", "SILVA 主要门平均", "SILVA 最差门", "GG 主要门平均", "GG 最差门"], seqcol=2)
+    tm2_ = tbl(mr, ["引物", "E. coli 位置", "每位点 3 条（第 1 条即上表引物，| 分隔）", "总简并数", "SILVA 主要门平均", "SILVA 最差门", "GG 主要门平均", "GG 最差门"], seqcol=2)
+    return ta_, ts_, tm2_
+
+VREG4 = {"A1": "V1 · V2", "A2": "V4", "A3": "V6 · V7", "A4": "V8 · V9"}
+t4a, t4s, t4m = single_multi(SITES4, TM4, VREG4, DI4)
+dim4_txt = "；".join(f"{a} × {b}（{k} nt）" for a, b, k in DIM4)
+VR_ = {"V1": (69, 99), "V2": (137, 242), "V3": (433, 497), "V4": (576, 682), "V5": (822, 879), "V6": (986, 1043), "V7": (1117, 1173), "V8": (1243, 1294), "V9": (1435, 1465)}
+ent_rows = []
+for v, (a, b) in VR_.items():
+    e = PROF.entropy.reindex(range(a, b + 1)).fillna(0)
+    ent_rows.append([v, b - a + 1, f"{e.sum():.1f}", f"{e.mean():.2f}"])
+t_ent = tbl(sorted(ent_rows, key=lambda r: -float(r[3])), ["可变区", "长度 nt", "总熵 bit", "每个碱基平均熵 bit"])
+ev4 = EV4.copy()
+t_ev4 = tbl([[r.db, r.primers, f"{r.bits_w:.0f}", f"{r.regions:.2f}", pct(r.ge3), pct(r.all_), r.per, r.worst] for _, r in ev4.iterrows()],
+            ["验证集", "每位点引物数", "期望信息量 bit", "平均扩出区域数", "≥3 个区域", "4 个全部", "各扩增子覆盖 %", "各扩增子最差门 %"])
 dim_txt = "；".join(f"{a} × {b}（{k} nt）" for a, b, k in DIM)
 
 body = f"""
@@ -99,12 +122,35 @@ body = f"""
 {t_cmp}
 <p>“最近邻距离”：在所有扩增子都扩出的序列里随机取最多 1,500 条，量每条序列与其他序列拼接签名的最小错配数。SMURF 把 ≤2 个错配当噪声，所以有 ≤2 错配邻居的序列无法被区分。各方案参与比较的序列不完全相同，只能作相对参考。</p>
 
-<h2>六、要不要包含 V4</h2>
-<p>期望信息量最优的方案不包含 V4（576–682）。强制要求至少 60% 的 V4 位置被测到后：</p>
+<h2>六、V4 是高变区，为什么强制包含会降低信息量</h2>
+<p>V4 确实是高变区，但在这个熵指标下它并不是信息最密的区域。每个碱基的平均熵：</p>
+{t_ent}
+<p>V4 总熵（103 bit）比 V3、V5 大，只是因为它长（107 nt）；按每个碱基算，V4 排在后面。强制 V4 之后信息量下降，原因是位置安排的机会成本，不是 V4 信息少：</p>
+<ul>
+<li><b>2×126</b>：V4 两侧的保守位点（515 和 785–806）相距 290 bp，放不进 250 bp。能放进去的是 514–709（196 bp），它自己贡献 103 bit，期望 104 bit。但它占用了原来 V3（338–576）和 V5（692–925）两个扩增子的位置（期望合计 236 bit），后面的扩增子被迫下移到 780–985（期望 87 bit）和 1050–1238（期望 75 bit），而自由最优的 947–1196 期望 133 bit。合计 607 → 504 bit。</li>
+<li><b>2×150</b>：516–805（290 bp）可以被完整测到，所以 4 个扩增子的自由最优本来就包含 V4（620 bit），强制 V4 没有任何损失。之前我写的“降低约 8%”是拿它和 5 个扩增子且没有 V4 的 665 bit 比；含 V4 的方案放不下第 5 个扩增子，因为扩增子都是 286–290 bp。</li>
+<li>熵是对整个种群逐位点的统计，不能反映“哪些位点能区分近缘种”。V4 在文献里常用于属水平分类，熵指标没有捕捉到这一点。如果你更看重 V4，这个指标会低估它的价值。</li>
+</ul>
+<p>两个读长下强制 V4 的结果：</p>
 {t_v4}
-<p>读长 2×126 时，强制包含 V4 使期望信息量降低约 17%（608 → 505 bit）；读长 2×150 时降低约 8%（665 → 614 bit，K=4）。如果 V4 对你的分析有硬性要求（例如和公开的 V4 数据对接），建议用 2×150 并接受这个代价。</p>
 
-<h2>七、局限</h2>
+<h2>七、包含 V4 的推荐版本（2×150，4 个扩增子）</h2>
+<p>读长 2×150，扩增子 11–260 和 3 个 286–290 bp 的长扩增子，完整覆盖 V1、V2、V4、V6、V7、V8、V9（没有 V3 和 V5）。</p>
+{t4a}
+<p>期望信息量 614 bit（单引物）/ 649 bit（每位点 3 条），而现有 5R 是 360 bit，迭代后的 5R 是 535 bit。</p>
+{t_ev4}
+<p>引物（单引物版本）：</p>
+{t4s}
+<p>3′ 端互补 ≥5 nt 的引物对：{dim4_txt}。A2-F 的 Tm 高达 68–77 °C，与其他引物差 10 °C 以上。</p>
+<h3>每位点 3 条引物版本</h3>
+{t4m}
+<ul>
+<li>这版没有 V3 和 V5；V4 扩增子（516–805）和另外两个长扩增子都是 286–290 bp，在 FFPE 降解样本里扩增效率会下降，也可能在各区域 reads 占比里偏低（现有 5R 里 244 bp 的 R3 只有 4%–11%）。</li>
+<li>首个扩增子（11–260）和末个扩增子（1222–1509）的引物较弱：最差门覆盖 44% 和 47%（单引物）/ 62% 和 71%（每位点 3 条）。</li>
+<li>读长必须至少是 2×150；如果只有 2×126，290 bp 的扩增子中间会有 38 nt 测不到。</li>
+</ul>
+
+<h2>八、局限</h2>
 <ul>
 <li>熵是代理指标：位点保守度高低不等于能区分到种。真正检验要用已知组成的标准菌群或带种级分类的参考集。</li>
 <li>数据库是 Greengenes 13_8 和 SILVA 128，不是最新版本；两端（1–100 位、1450 位以后）序列数据少，熵和覆盖率的估计不如中间可靠。</li>
