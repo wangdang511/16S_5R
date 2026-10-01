@@ -69,7 +69,7 @@ md(r"""
 code(r"""
 cfg = s.Config(kmer_len=126)
 # E. coli 16S 上的大致位置（由引物序列比对 J01859 得到，便于理解覆盖的可变区）
-ecoli_pos = [(104, 336, 'V2'), (338, 531, 'V3'), (685, 929, 'V5'), (926, 1086, 'V6'), (1175, 1392, 'V8')]
+ecoli_pos = [(104, 337, 'V2'), (338, 531, 'V3'), (685, 926, 'V5'), (943, 1102, 'V6'), (1175, 1392, 'V8')]
 prim = pd.DataFrame([{'region': f'R{i+1}', 'forward': f, 'reverse': r,
                       'F len': len(f), 'R len': len(r),
                       'F variants': len(s.expand_degenerate(f)), 'R variants': len(s.expand_degenerate(r)),
@@ -494,6 +494,29 @@ print('indInValue', db_toy['indInValue'].ravel(), '| perfect', db_toy['is_perfec
       '| values shape', db_toy['values'].shape, len(db_toy['values'][0]))
 # 与真实数据库的 k-mer 截取方式一致：
 print(db_toy['values'][0][:len(F)] == F, db_toy['values'][0][-len(R):] == s.revcomp(R))
+""")
+md(r"""
+### 10.6 相邻扩增子之间的跨区域产物
+
+R1/R2、R3/R4 两组扩增子首尾相邻：R1 反向引物与 R2 正向引物之间约隔 5 nt，R3 反向引物与 R4 正向引物之间约隔 16 nt
+（按 *E. coli* 序列核对）。引物位点**不重叠**，夹在中间的两条引物 3′ 端背向而行，不会形成短的“重叠产物”。
+但同一管中，外侧的 F1+R2（约 430 bp）、F3+R4（约 420 bp）可以形成长片段。下面统计原始 read 对两端的引物组合：
+对角线是正常扩增子，非对角线是跨区域产物。
+""")
+code(r"""
+rows = []
+for name, [(f1, f2)] in pairs.items():
+    tab, n = s.cross_primer_table(f1, f2, cfg)
+    print(f'== {name}: {n:,} raw read pairs'); display(tab)
+    for a_, b_ in [(1, 2), (3, 4), (2, 3), (4, 5)]:
+        v = tab.loc[f'R{a_}', f'R{b_}'] if f'R{a_}' in tab.index and f'R{b_}' in tab.columns else 0
+        rows.append({'sample': name, 'product': f'F{a_}+R{b_}', 'read pairs': int(v), '% of all pairs': 100 * v / n})
+pd.DataFrame(rows).round(4)
+""")
+md(r"""
+观察：F3+R4 只占全部 read 对的 0.01–0.03%，F1+R2 为 0–0.02%，而且这些 read 两端的引物不属于同一区域，会在第 4 步被丢弃，不进入模型。
+FFPE DNA 多已断成 300 bp 以下的片段，能跨越 420 bp 的模板很少，这是长产物罕见的主要原因。文库纯化和测序对长片段有一定偏好损失，
+所以真实 PCR 中的比例可能略高，可用 Bioanalyzer/TapeStation 看是否有约 420 bp（加接头后更长）的峰来确认。
 """)
 md(r"""
 ## 11. 小结

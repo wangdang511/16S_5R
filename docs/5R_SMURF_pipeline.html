@@ -120,7 +120,8 @@ footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid va
 
 <section id="map">
 <h2>5 个扩增区域在 16S 上的位置</h2>
-<p>坐标为 <i>E. coli</i> 16S 编号（近似值）。扩增子长度由数据库中的 <code>match_pos_fwd / match_pos_rvs</code> 估算。所有扩增子都短于 2 × 126 = 252 nt，所以双端 reads 在每个区域都有重叠，R4 重叠最多（约 90 nt）。</p>
+<p>坐标为 <i>E. coli</i> 16S 编号（近似值），扩增子长度由数据库中的 <code>match_pos_fwd / match_pos_rvs</code> 估算。</p>
+<p>这里有两种“相邻”，不要混淆。<b>扩增子之间</b>：R1 与 R2、R3 与 R4 首尾相接，但引物位点并不重叠，R1 反向引物与 R2 正向引物之间约隔 5 nt，R3 反向引物与 R4 正向引物之间约隔 16 nt（对 <i>E. coli</i> 序列核对）。<b>同一扩增子内的双端 reads 之间</b>：所有扩增子都短于 2 × 126 = 252 nt，所以 R1、R2 两条 read 在每个区域都有重叠，R4 重叠最多（约 90 nt）。后者只影响数据分析，不影响 PCR。</p>
 <figure class="figure">
 <svg viewBox="0 0 880 210" width="100%" style="min-width:640px" role="img" aria-label="16S rRNA 基因上 V1–V9 可变区与 5 个扩增子的位置">
   <g transform="translate(30,0)">
@@ -140,10 +141,10 @@ footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid va
     </g>
     <!-- amplicons -->
     <g font-size="12">
-      <rect x="55.3" y="88" width="123.4" height="14" rx="2" fill="var(--accent)"/><text x="55.3" y="120" fill="var(--ink)">R1 104–336 · 232 bp</text>
+      <rect x="55.3" y="88" width="123.9" height="14" rx="2" fill="var(--accent)"/><text x="55.3" y="120" fill="var(--ink)">R1 104–337 · 232 bp</text>
       <rect x="179.7" y="134" width="102.6" height="14" rx="2" fill="var(--accent)"/><text x="179.7" y="166" fill="var(--ink)">R2 338–531 · 193 bp</text>
-      <rect x="364.3" y="88" width="129.7" height="14" rx="2" fill="var(--accent)"/><text x="364.3" y="120" fill="var(--ink)">R3 685–929 · 244 bp</text>
-      <rect x="492.4" y="134" width="85.1" height="14" rx="2" fill="var(--accent)"/><text x="492.4" y="166" fill="var(--ink)">R4 926–1086 · 160 bp</text>
+      <rect x="364.3" y="88" width="128.2" height="14" rx="2" fill="var(--accent)"/><text x="364.3" y="120" fill="var(--ink)">R3 685–926 · 244 bp</text>
+      <rect x="501.5" y="134" width="84.6" height="14" rx="2" fill="var(--accent)"/><text x="501.5" y="166" fill="var(--ink)">R4 943–1102 · 160 bp</text>
       <rect x="624.8" y="88" width="115.4" height="14" rx="2" fill="var(--accent)"/><text x="624.8" y="120" fill="var(--ink)">R5 1175–1392 · 217 bp</text>
     </g>
     <text x="0" y="198" font-size="11" fill="var(--muted)">灰色块为可变区 V1–V9；蓝色条为 5R 扩增子（含引物）。V1、V4、V7、V9 未覆盖。</text>
@@ -302,6 +303,11 @@ footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid va
     <ul><li>当前未覆盖 V1、V4、V7、V9。V1 对 <i>Staphylococcus</i>、<i>Cutibacterium</i>、<i>Streptococcus</i> 等皮肤和口腔菌的种水平区分有帮助。</li>
     <li>V4（515F/806R）是 EMP 等大型项目的标准区域，加入后便于和公开数据比对。</li>
     <li>模型本身支持任意数量的区域，增加区域的主要成本在多重 PCR 的优化上。代码中 <code>nR = 5</code> 的硬编码需要先改掉。</li></ul></div>
+  <div class="card"><h4><span class="pri p2">中</span>相邻扩增子的跨区域产物</h4>
+    <ul><li>R3 上游引物 F3 与 R4 下游引物 R4 可在同一管中扩出约 420 bp 的长片段，F1 + R2 同理约 430 bp。夹在中间的 R3 反向引物与 R4 正向引物 3′ 端背向而行，位点又不重叠，不会形成短产物。</li>
+    <li>示例数据实测：F3+R4 占全部 read 对的 0.011% 和 0.025%，F1+R2 为 0 和 0.023%；97.5% 以上的 read 对两端引物属于同一区域。这些跨区域 read 在分配区域时就被丢弃。</li>
+    <li>引物通常远远过量（约 10¹² 个分子，模板仅 10³–10⁶ 拷贝），长产物主要在平台期才有竞争作用；FFPE DNA 多断成 300 bp 以下，能跨越 420 bp 的模板本来就少。</li>
+    <li>要进一步压低：把 72 °C 延伸缩短到 10–15 s，并在建库时用磁珠去掉 &gt;350 bp 的片段。若用于完整 DNA（新鲜冷冻、培养物）且实测比例 &gt;1%，再拆成两管：A 管 R1、R3、R5，B 管 R2、R4，管内最近的跨区域产物变为 700 bp 以上。拆管会让每个区域只用到一半模板，低生物量样本要权衡。</li></ul></div>
   <div class="card"><h4><span class="pri p2">中</span>用实验校正区域扩增偏倚</h4>
     <ul><li>模型假设五个区域扩增效率相同，但示例中 R2 获得的 reads 是 R3 的 6–12 倍。</li>
     <li>建议用 ZymoBIOMICS 等已知组成的 mock community 估计每个区域、每类错配的扩增效率，再作为权重写进 A 矩阵。</li>

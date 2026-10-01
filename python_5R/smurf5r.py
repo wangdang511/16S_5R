@@ -694,3 +694,30 @@ def build_region_db_from_fasta(seqs: dict, cfg: Config, rr: int, max_amplicon=60
     values = np.array(list(vals.keys()), dtype=f"<U{2 * k}")
     return {"values": values, "indInValue": np.array(ind, float)[:, None],
             "is_perfect_match": np.array(pm)[:, None]}
+
+
+def cross_primer_table(r1_path, r2_path, cfg: Config, max_mm=2, n_check=40):
+    """
+    统计原始 read 对两端各是哪条引物（不做质量过滤）。
+    对角线 = 正常扩增子；非对角线 (Fi, Rj) = 跨区域产物，例如 F3+R4 即 R3 上游引物与 R4 下游引物扩出的长片段。
+    """
+    s1, _ = _read_fastq(r1_path)
+    s2, _ = _read_fastq(r2_path)
+    S1 = to_u8([x[:n_check].ljust(n_check, "N") for x in s1], n_check)
+    S2 = to_u8([x[:n_check].ljust(n_check, "N") for x in s2], n_check)
+
+    def best(block, seqs):
+        d = np.array([np.min([((block[:, :len(q)] != p) & (block[:, :len(q)] != ord("N"))).sum(1)
+                              for p in to_u8(expand_degenerate(q))], axis=0) for q in seqs])
+        return np.where(d.min(0) <= max_mm, d.argmin(0), -1)
+
+    fw = [f for f, _ in cfg.primers]
+    rv = [r for _, r in cfg.primers]
+    f1, r2 = best(S1, fw), best(S2, rv)          # R1 读正向引物
+    f2, r1 = best(S2, fw), best(S1, rv)          # 反向插入的片段
+    swap = ((f1 < 0) | (r2 < 0)) & (f2 >= 0) & (r1 >= 0)
+    F = np.where(swap, f2, f1)
+    R = np.where(swap, r1, r2)
+    lab = lambda v: np.array(["none" if x < 0 else f"R{x + 1}" for x in v])
+    tab = pd.crosstab(pd.Series(lab(F), name="forward primer"), pd.Series(lab(R), name="reverse primer"))
+    return tab, len(s1)
