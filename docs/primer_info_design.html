@@ -90,7 +90,8 @@ footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid va
   <h1>以信息量为目标：4–6 个扩增子、延伸到 16S 两端</h1>
   <p class="lede">仍是单管。目标改成“每条序列平均测到的信息量”：被测序碱基位置的保守度熵之和（bit），再乘以该序列被扩出的概率。用动态规划在“同管扩增子区间互不相交、间隔 ≥20 nt”的约束下求精确最优，允许边界延伸到 11 和 1509。</p>
   <p>我把“4–6 条引物”理解为 4–6 个扩增子（正反引物各一对）。这是计算机模拟，没有做实验；信息量是熵的代理指标，不等于种水平鉴定率。</p>
-</header>
+<p style="border:1px solid var(--warn);background:var(--surface);padding:10px 14px;border-radius:8px"><b>更正（以 <code>primer_v3v4_design.html</code> 为准）：</b>本页用“位点熵”作为信息量，这个指标和“能否区分属”相关性弱（Spearman 0.33）：熵最高的窗口（V1–V2）属准确率 78%，覆盖 V4 的窗口最高约 90%。因此本页“最优方案不含 V4”和“信息量 +69%”的结论不可靠；此外本页的多引物结果受一个已修复的算法缺陷影响（起始序列未按未覆盖序列加权）。</p>
+  </header>
 
 <h2>一、结论</h2>
 <ul>

@@ -205,9 +205,14 @@ def best_degenerate(M, three_prime_side, max_degen=2, max_fold=4, weights=None):
         return None, np.nan
     sets = []
     for j in range(L):
-        v, c = np.unique(Md[:, j], return_counts=True)
-        v = [chr(x) for x in v]
-        sets.append({v[int(np.argmax(c))]} if set(v) & set("ACGT") else {"A"})
+        # 加权多数碱基：权重集中在某一类序列（如追加引物时只剩未覆盖的序列）时，起始序列应跟着它们走
+        col = Md[:, j]
+        best_b, best_w = None, -1.0
+        for b in b"ACGT":
+            wb = w[col == b].sum()
+            if wb > best_w:
+                best_b, best_w = b, wb
+        sets.append({chr(best_b)} if best_w > 0 else {"A"})
 
     def seq_of(st):
         return "".join(CODE[frozenset(s)] for s in st)

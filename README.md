@@ -89,6 +89,7 @@ Python 复现与流程讲解
 ----------------
 * `python_5R/` — 与 `mFiles/` 一一对应的 Python 实现（无需 MATLAB），在示例数据上与 `example_results/` 一致。
 * `notebooks/5R_SMURF_step_by_step.ipynb` — 一步一步的复现 Notebook（含输出）。
+* `docs/primer_v3v4_design.html` — V3+V4 单管设计（扩增子 ≤290 bp），含窗口扫描、属分类准确率评估和引物序列；其余 `docs/primer_*.html` 为前几轮分析，更正说明见各页顶部。
 * `docs/5R_SMURF_pipeline.html` — 流程图解、算法讲解、代码问题清单，以及引物、算法、数据库三方面的改进建议。
 
 
