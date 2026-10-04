@@ -14,6 +14,16 @@ for sn in ("5R 现有", "最终 4 扩增子", "V1V2 追加"):
     rows.append([sn, int(d.oligos.iloc[0])] + [f"{int(d.loc[m].loci):,}" for m in (1, 2, 3)] + [int(d.loc[m].products) for m in (2, 3)])
 t1 = tbl(rows, ["引物集合", "寡核苷酸数", "≤1 错配的位点", "≤2 错配的位点", "≤3 错配的位点", "≤2 错配的潜在产物", "≤3 错配的潜在产物"])
 O = O.sort_values("loci_per_expansion", ascending=False)
+E = pd.read_csv(f"{HERE}/extend_candidates.csv"); D = pd.read_csv(f"{HERE}/extend_design_eval.csv"); EP = pd.read_csv(f"{HERE}/extend_offtarget_per_oligo.csv"); ES = pd.read_csv(f"{HERE}/extend_offtarget_summary.csv")
+CH = {("A2-F", 0): 3, ("A2-R", 0): 2, ("A4-R", 0): 3, ("A5-F", 0): 3, ("A5-F", 1): 3, ("A1-F", 0): 0, ("A1-R", 0): 1, ("A1-R", 1): 1}
+r3 = []
+for (sn, i), e in CH.items():
+    o = E[(E.site == sn) & (E.i == i) & (E.e == 0)].iloc[0]; n = E[(E.site == sn) & (E.i == i) & (E.e == e)].iloc[0]
+    r3.append([f"{sn}_{i}", o.seq, n.seq if e else "（未延长）", f"+{e}", f"{o.Tm} → {n.Tm}", f"{o.SILVA * 100:.0f}% / {o.GG * 100:.0f}% → {n.SILVA * 100:.0f}% / {n.GG * 100:.0f}%", f"{o.loci2 / o.nexp:g} → {n.loci2 / n.nexp:g}"])
+t3 = tbl(r3, ["寡核苷酸", "原序列", "延长后", "延长 nt", "Tm °C", "位点覆盖率 SILVA / GG", "每个展开序列的人基因组位点（≤2 错配）"], seqcol=2)
+t4 = tbl([[r.design, int(r.oligos), int(r.expansions), f"{r.Tm_min}–{r.Tm_max}", int(r.severe), r.SILVA_amp, r.GG_amp, f"{r.SILVA_all * 100:.1f}% / {r.GG_all * 100:.1f}%", f"{r.ideal * 100:.1f}%", f"{r.abs60 * 100:.1f} / {r.abs300 * 100:.1f} / {r['frac0.8'] * 100:.1f}%"] for _, r in D.iterrows()],
+         ["方案", "寡核苷酸", "展开数", "Tm °C", "严重二聚体", "扩增子覆盖 SILVA", "扩增子覆盖 GG", "全部扩出 SILVA / GG", "理想准确率", "属准确率（三种规则）"])
+t5 = tbl([[r.set.replace("扩增子延长后", " 个扩增子（延长后）") if False else r.set, int(r.mm), f"{int(r.loci):,}", int(r.products)] for _, r in ES.iterrows()], ["延长后的集合", "错配上限", "人基因组位点", "潜在产物（80–1500 bp）"])
 t2 = tbl([[r.set, r.oligo, r.seq, r.nt, r.expansions, f"{r.loci_le2mm:,}", f"{r.loci_per_expansion:g}"] for _, r in O.iterrows() if r.loci_per_expansion >= 2],
          ["集合", "寡核苷酸", "序列 5′→3′", "nt", "展开数", "≤2 错配的位点", "每个展开序列的位点数"], seqcol=2)
 body = f"""
@@ -40,20 +50,33 @@ body = f"""
 </ul>
 {t2}
 
-<h2>三、含义和建议</h2>
+<h2>三、含义和建议（延长之前）</h2>
 <ul>
 <li>脱靶产物不是 16S，不会被 SMURF 的 16S 数据库匹配到，主要的后果是在人 DNA 很多的样本里浪费读段、拉低有效数据量；会不会真的扩出，取决于退火温度和人 DNA 量，这里没法判断。</li>
 <li>最直接的修正：给这几条短寡核苷酸的 5′ 端各延长 2–4 个碱基（沿 16S 模板），这样既减少人基因组的匹配，也能同时抬高它们的 Tm（A5-F 的两条本来就偏低），代价是覆盖率会略降，需要重新评估。这一步我还没做。</li>
 <li>不建议为此放弃新设计；也要承认 5R 在这点上更好。</li>
 </ul>
 
-<h2>四、局限</h2>
+<h2>四、按建议延长短寡核苷酸后重新评估</h2>
+<p>对 16–17 nt 的寡核苷酸，沿 16S 模板在 5′ 端延长 1–6 个碱基（新增碱基取该寡核苷酸所覆盖序列中的多数碱基），再逐个比较 Tm、位点覆盖率、人基因组命中数。选择规则：每个展开序列在人基因组 ≤2 错配的位点数 ≲30，Tm ≲66 °C，覆盖率损失尽量小。选定的延长长度：</p>
+{t3}
+<p>整个池评估（A1 = V1·V2；覆盖率是 Greengenes 和 SILVA 留出集，“全部扩出”指所有扩增子都扩出）：</p>
+{t4}
+{t5}
+<ul>
+<li><b>人基因组脱靶明显降低</b>：最终 4 个扩增子在 ≤2 个错配下，位点从 9,788 降到 324，潜在产物从 15 降到 0；≤3 个错配的潜在产物从 490 降到 1。V1·V2 追加的位点从 3,283 降到 2,641，≤3 个错配的潜在产物从 67 降到 41（A1-F 没法延长，剩下的主要来自它）。线粒体的命中不变，仍然没有潜在产物。</li>
+<li><b>代价</b>：扩增子覆盖率下降约 0–4 个百分点（SILVA 81/78/80/79 → 80/78/78/75，GG 95/91/93/95 → 92/91/91/93），“全部扩出”SILVA 66.8% → 62.7%，GG 80.6% → 76.1%；属准确率（算入扩增失败，三种规则）91.4/90.9/91.5% → 90.2/90.4/91.3%，理想准确率不变（94.2%）。主要原因是 A2-F：延长 1 nt 就让覆盖率从 95%/98% 降到 90%/88%（我的匹配规则是总错配 ≤1，与长度无关，所以更长的引物更难满足；真实 PCR 对长引物更宽容，所以这是偏保守的估计）。</li>
+<li><b>Tm 范围变宽</b>：56.5–69.6 °C（原来 50.8–63.5 °C）。A2-R 是 GC 约 78% 的 18 nt，Tm 69.6 °C，是池里最热的；最低的 A5-F_8 约 56.6 °C，比原来的 50.8 °C 好。退火温度要按这个范围重新选。</li>
+<li><b>一个临界的自二聚体</b>：A5-F_7 延长后（`GCTRCACRCRTGCTACAAT`）自身 ΔG −9.0 kcal/mol（3′ 端 −3.5），刚到我设的阈值；任何长度的延长都会这样，不延长（16 nt）则没有，但人基因组位点 142 个/展开序列。3′ 端稳定性不强，所以我认为风险不高，但需要实验验证。</li>
+<li><b>A1-F 没有延长</b>：它位于 8–24，再往 5′ 延长会超出数据库里序列的数据范围（约 20% 序列在 8 位之前没有数据），评估不了，所以保持 17 nt，人基因组位点 2,329 个（291 个/展开序列）。如果要加 V1·V2，这是剩下的弱点。</li>
+</ul>
+<h2>五、局限</h2>
 <ul>
 <li>hg19 不是最新版本，也缺少 rDNA 阵列等重复区域；人 18S/28S rRNA 没有单独检查，核 rDNA 可能比表中更多。</li>
 <li>“3′ 端 8 nt 完全匹配 + 总错配数”是粗略规则，没考虑错配位置、GC、二级结构，也没算热力学；位点数不等于会扩出。</li>
 <li>只检查了人，没有检查宿主以外的污染或样本里的其他真核生物。</li>
 </ul>
-<footer>脚本：<code>python_5R/explore/offtarget.py</code>；数据：<code>docs/primer_design/offtarget_*.csv</code>、<code>offtarget_primers.json</code>。</footer>
+<footer>脚本：<code>python_5R/explore/offtarget.py</code>、<code>extend_ext*.py</code>；数据：<code>docs/primer_design/offtarget_*.csv</code>、<code>offtarget_primers.json</code>。</footer>
 </main></div>
 """
 open(DOCS + "/primer_offtarget.html", "w", encoding="utf-8").write(head + body)
