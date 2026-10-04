@@ -100,7 +100,7 @@ body = f"""
   <h1>5R 引物重设计：单管、加入 V4、用 SILVA 交叉验证</h1>
   <p class="lede">和 5R 一样，所有引物放在同一管里扩增。在“扩增子 180–250 bp、引物位于保守区、同管引物位点互不相交”的约束下，用 Greengenes 13_8 设计候选，再用 SILVA 128 的 6 万条序列和 Greengenes 的 1.2 万条留出序列做交叉验证。</p>
   <p>这是计算机模拟的设计，没有做实验验证。SILVA 的门标签是我用 Greengenes 训练的分类器推断的，不是 SILVA 官方标签；GTDB 在本环境下载不了，没有评估。</p>
-<p style="border:1px solid var(--warn);background:var(--surface);padding:10px 14px;border-radius:8px"><b>更正（以 <code>primer_v3v4_design.html</code> 为准）：</b>本页用“位点熵”作为信息量，这个指标和“能否区分属”相关性弱（Spearman 0.33）：熵最高的窗口（V1–V2）属准确率 78%，覆盖 V4 的窗口最高约 90%。因此本页“最优方案不含 V4”和“信息量 +69%”的结论不可靠；此外本页的多引物结果受一个已修复的算法缺陷影响（起始序列未按未覆盖序列加权）。</p>
+<p style="border:1px solid var(--warn);background:var(--surface);padding:10px 14px;border-radius:8px"><b>更正：本页的“推荐方案 S1”已被取代，最新的设计见 <code>primer_compact_primers.html</code>（V3 + V4 + V6V7 + V8V9，10 条寡核苷酸）。</b>另外，本页用“位点熵”作为信息量，这个指标和“能否区分属”相关性弱（Spearman 0.33）：熵最高的窗口（V1–V2）属准确率 78%，覆盖 V4 的窗口最高约 90%。因此本页“最优方案不含 V4”和“信息量 +69%”的结论不可靠；此外本页的多引物结果受一个已修复的算法缺陷影响（起始序列未按未覆盖序列加权）。</p>
   </header>
 
 <h2>一、现有 5R：引物位置与示例数据里各区域的 reads</h2>
