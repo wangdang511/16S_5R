@@ -1,0 +1,132 @@
+<title>V1V2 引物单独优化</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (~70ch) with full-bleed figures; a sticky step index on wide screens.
+   Color: lab-paper neutrals tinted toward the cobalt accent; nucleotide colors (A/C/G/T, chromatogram convention) as the subject detail. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6675; --line:#d7dde5;
+  --accent:#2747c8; --accent-soft:#e3e8fb;
+  --A:#1f8a4c; --C:#2f62d6; --G:#b07800; --T:#c8372d;
+  --ok:#1f8a4c; --warn:#b07800; --bad:#c8372d;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}.toc{display:none}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:13px;line-height:1.5}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 10px;border-left:2px solid var(--line)}
+.toc a:hover,.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent);outline:none}
+.toc .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+main{min-width:0}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(30px,5vw,44px);line-height:1.2;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--serif);font-weight:800;font-size:26px;line-height:1.3;margin:64px 0 8px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-size:18px;font-weight:700;margin:32px 0 6px}
+p,li{max-width:68ch}
+p{margin:10px 0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+.seq{font-family:var(--mono);letter-spacing:.04em;font-size:13px;white-space:nowrap}
+.sA{color:var(--A)}.sC{color:var(--C)}.sG{color:var(--G)}.sT{color:var(--T)}.sX{color:var(--accent);font-weight:600}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0;overflow-x:auto}
+.figure figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:none}
+svg text{font-family:var(--sans)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.fact{border-top:2px solid var(--ink);padding-top:8px}
+.fact b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.n{text-align:right;font-family:var(--mono);font-size:13px}
+.tbl{overflow-x:auto;margin:14px 0}
+
+/* pipeline steps */
+.steps{list-style:none;padding:0;margin:20px 0;display:grid;gap:0;counter-reset:st}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;position:relative;padding-bottom:26px}
+.step:before{counter-increment:st;content:counter(st);width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--mono);z-index:1}
+.step:after{content:"";position:absolute;left:17px;top:38px;bottom:0;width:2px;background:var(--line)}
+.step:last-child:after{display:none}
+.step h3{margin:4px 0 2px}
+.step .file{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.step .io{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface);white-space:nowrap}
+.pill.k{border-color:var(--accent);color:var(--accent)}
+
+.formula{font-family:var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;font-size:14px;line-height:1.9}
+.note{border-left:3px solid var(--warn);padding:6px 14px;margin:14px 0;background:var(--surface);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p,.card li{font-size:14.5px}
+.card ul{padding-left:18px;margin:6px 0}
+.pri{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:4px;margin-right:6px;vertical-align:2px}
+.p1{background:var(--bad);color:var(--surface)}.p2{background:var(--warn);color:var(--surface)}.p3{background:var(--muted);color:var(--surface)}
+.bugs td:first-child{white-space:nowrap}
+.heat td.h{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink)}
+footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:no-preference){.toc a{transition:color .15s,border-color .15s}}
+</style>
+<div class="wrap"><main style="grid-column:1/-1;width:100%;max-width:980px;margin-inline:auto">
+<header>
+  <div class="eyebrow">16S_5R · 引物设计</div>
+  <h1>V1·V2 反向引物单独优化：值不值得把 V1·V2 加回去</h1>
+  <p class="lede">单独为 V1·V2（A1）的反向引物扫描位置、长度、条数和简并度，并把正向引物 A1-F 也一起重做。位点覆盖率能提到 92–95%，但整个扩增子的覆盖率几乎不动，所以不建议把 V1·V2 加回推荐方案。</p>
+  <p>这是计算机模拟，没有实验验证。数据库是 Greengenes 13_8 和 SILVA 128，不是最新版本。</p>
+</header>
+
+<h2>一、结论</h2>
+<ul>
+<li><b>A1-R 的位点覆盖率可以明显提高</b>：原来 3 条（展开 16）的组合，改成 2 条（展开 32，259–275）约 92%，3 条（展开 48，244–260）约 93%，4 条（展开 64，243–259）约 95%。位点覆盖率是 Greengenes 和 SILVA 中较低的那个。</li>
+<li><b>但整个 V1·V2 扩增子的覆盖率只提高了几个百分点</b>：SILVA 从 74% 到 77–78%，Greengenes 从 87% 到 90–92%，而且 7–8 条寡核苷酸才到顶。正向引物 A1-F 一侧本身就有缺口，SILVA 里 A1-F 单独只有约 80% 的序列匹配（全部序列，不限于主要门）。</li>
+<li><b>A1-F 缩短到 17 nt（8–24）更好</b>：1 条 <code>AGRGTTTGATYMTGGCT</code> 位点覆盖率 95%，比原来的 19 nt（8–26）高；扩增子覆盖率只多约 1 个百分点。</li>
+<li><b>把 V1·V2 加回去，属准确率没有净收益</b>：理想情况（全部扩出）提高约 0.7–0.9 个百分点；把扩增失败算进去后，4 个扩增子方案加 V1·V2 在三种比较规则下是 90.0 / 90.1 / 91.4%，不加是 91.4 / 90.9 / 91.5%，持平或略差。</li>
+<li><b>推荐不变</b>：4 个扩增子（V3、V4、V6·V7、V8·V9）、95%、10 条寡核苷酸。V1·V2 如果一定要，A1-F 用 17 nt 单条，A1-R 用 4 条（展开 64）；代价是再多 6 条寡核苷酸，Tm 下限 53 °C 左右。</li>
+</ul>
+
+<h2>二、更正：上一轮“加 V2 变差”的结论有一部分是评估假象</h2>
+<ul>
+<li><b>数据缺失</b>：约 20% 的带标签序列在 8–19 位没有数据，位于 8–26 的 A1-F 会被错判成没扩出。现在只用 8–1510 都有数据的序列评估（带标签 5,046 条，留出集 2,196 条、348 个属；SILVA 8,434 条，Greengenes 2,523 条）。</li>
+<li><b>比较规则很敏感</b>：“扩增失败算进去”的准确率取决于两条序列至少要有多少共同位点才可比。规则改变，S1 加 V1·V2 的差距从 −7 个百分点变到 0（见第五节）。所以早先页面里“每种方案 87.0%、90.8%、84.7%”之类的数字，只能当作粗略排序，不要当作精确差距。</li>
+<li>修正后的结论是：V1·V2 加回去的收益在误差范围内，不是明显有害，但也不值得。</li>
+</ul>
+
+<h2>三、A1-R 扫描（起点 243–280，长度 17/19/21/23，设计集 Greengenes 一半 + SILVA 12,000 条）</h2>
+<div class="tbl"><table><thead><tr><th>引物条数</th><th>单条展开上限</th><th>展开后总数</th><th>位置（E. coli）</th><th>位点覆盖率（Greengenes / SILVA 取较低）</th><th>序列 5′→3′（顶链方向）</th></tr></thead><tbody><tr><td class="n">1</td><td class="">≤16</td><td class="n">16</td><td class="n">259–275</td><td class="n">88.3%</td><td class="seq">CTTGGTRRGCYRTTACC</td></tr><tr><td class="n">2</td><td class="">≤8</td><td class="n">16</td><td class="n">259–275</td><td class="n">89.9%</td><td class="seq">CTTGGTRRGCYGTTACC | CTTGGTRRGCCWTTACC</td></tr><tr><td class="n">2</td><td class="">≤16</td><td class="n">32</td><td class="n">259–275</td><td class="n">92.1%</td><td class="seq">CTTGGTRRGCYRTTACC | CTTGGTRRGCYTTTRCC</td></tr><tr><td class="n">3</td><td class="">≤8</td><td class="n">22</td><td class="n">246–262</td><td class="n">91.9%</td><td class="seq">TACCYCACCAACWARCT | TACCCCRCCAACTABCT | TACCYTACCAACTARYT</td></tr><tr><td class="n">3</td><td class="">≤16</td><td class="n">48</td><td class="n">244–260</td><td class="n">93.3%</td><td class="seq">CCYYRCCAACTAGCTRA | CCYYRCCAACAAGCTRA | CCMCMCCAACTAGCTRR</td></tr><tr><td class="n">4</td><td class="">≤8</td><td class="n">30</td><td class="n">246–262</td><td class="n">92.9%</td><td class="seq">TACCYCACCAACWARCT | TACCCCRCCAACTABCT | TACCYTACCAACTARYT | TACCCCRCCAWCMAGCT</td></tr><tr><td class="n">4</td><td class="">≤16</td><td class="n">64</td><td class="n">243–259</td><td class="n">95.1%</td><td class="seq">CYYRCCAACTAGCTRAT | CYYACCAWCAAGCTRAT | CMCMCCAACTARCTART | CCCRCCWACTASCTRAT</td></tr><tr><td class="n">6</td><td class="">≤16</td><td class="n">96</td><td class="n">243–259</td><td class="n">96.7%</td><td class="seq">CYYRCCAACTAGCTRAT | CYYACCAWCAAGCTRAT | CMCMCCAACTARCTART | CCCRCCWACTASCTRAT | CCCRCCRTCWAGCTRAT | CYCWCCAACTAGCTRRT</td></tr></tbody></table></div>
+<p>位点覆盖率在 4 条以后基本到顶（6 条 96.7%，8 条 96.9%）。Tm（引物池内最低/最高）见第四节。</p>
+
+<h2>四、A1-F 扫描，以及两端组合后的扩增子覆盖率</h2>
+<div class="tbl"><table><thead><tr><th>引物条数</th><th>单条展开上限</th><th>展开后总数</th><th>位置</th><th>位点覆盖率</th><th>序列 5′→3′</th></tr></thead><tbody><tr><td class="n">1</td><td class="">≤8</td><td class="n">8</td><td class="n">8–24</td><td class="n">95.0%</td><td class="seq">AGRGTTTGATYMTGGCT</td></tr><tr><td class="n">2</td><td class="">≤8</td><td class="n">16</td><td class="n">8–24</td><td class="n">95.7%</td><td class="seq">AGRGTTTGATYMTGGCT | YGWGTTTGATCCTGGCK</td></tr><tr><td class="n">3</td><td class="">≤8</td><td class="n">24</td><td class="n">8–26</td><td class="n">95.6%</td><td class="seq">AGRGTTTGATYMTGGCTCA | YGWGTTTGATCCTGGCKCA | MGWGTTTGATCCTGGCTKA</td></tr><tr><td class="n">4</td><td class="">≤16</td><td class="n">56</td><td class="n">8–24</td><td class="n">96.3%</td><td class="seq">AGRGTTTGATYMTGGCT | YGWGTWTGATCCTGGCK | YYTGKTTGATCCTGCCW | AGAGTTTGATMYTGKYT</td></tr></tbody></table></div>
+<p>下面是 A1-F × A1-R 的组合，在“8–1510 都有数据”的序列上评估：</p>
+<div class="tbl"><table><thead><tr><th>A1-F</th><th>A1-R</th><th>寡核苷酸数</th><th>展开后总数</th><th>Tm °C</th><th>扩增子覆盖：SILVA / GG</th><th>留出集覆盖</th></tr></thead><tbody><tr><td class="">旧F(19nt,1条)</td><td class="">旧 A1-R (3 条/展开 16)</td><td class="n">4</td><td class="n">28</td><td class="n">55–60</td><td class="n">74% / 87%</td><td class="n">87.8%</td></tr><tr><td class="">旧F(19nt,1条)</td><td class="">2 条/32</td><td class="n">3</td><td class="n">36</td><td class="n">55–60</td><td class="n">75% / 89%</td><td class="n">89.5%</td></tr><tr><td class="">旧F(19nt,1条)</td><td class="">3 条/22</td><td class="n">4</td><td class="n">26</td><td class="n">50–60</td><td class="n">74% / 88%</td><td class="n">88.4%</td></tr><tr><td class="">旧F(19nt,1条)</td><td class="">3 条/48</td><td class="n">4</td><td class="n">52</td><td class="n">56–60</td><td class="n">74% / 87%</td><td class="n">88.0%</td></tr><tr><td class="">旧F(19nt,1条)</td><td class="">4 条/30</td><td class="n">5</td><td class="n">34</td><td class="n">50–62</td><td class="n">75% / 89%</td><td class="n">89.7%</td></tr><tr><td class="">旧F(19nt,1条)</td><td class="">4 条/64</td><td class="n">5</td><td class="n">68</td><td class="n">53–60</td><td class="n">76% / 90%</td><td class="n">91.1%</td></tr><tr><td class="">旧F(19nt,1条)</td><td class="">6 条/96</td><td class="n">7</td><td class="n">100</td><td class="n">53–60</td><td class="n">77% / 91%</td><td class="n">92.2%</td></tr><tr><td class="">F17(1条)</td><td class="">旧 A1-R (3 条/展开 16)</td><td class="n">4</td><td class="n">32</td><td class="n">55–60</td><td class="n">74% / 88%</td><td class="n">88.2%</td></tr><tr><td class="">F17(1条)</td><td class="">2 条/32</td><td class="n">3</td><td class="n">40</td><td class="n">55–56</td><td class="n">75% / 89%</td><td class="n">90.1%</td></tr><tr><td class="">F17(1条)</td><td class="">3 条/22</td><td class="n">4</td><td class="n">30</td><td class="n">50–58</td><td class="n">75% / 88%</td><td class="n">88.8%</td></tr><tr><td class="">F17(1条)</td><td class="">3 条/48</td><td class="n">4</td><td class="n">56</td><td class="n">55–58</td><td class="n">75% / 88%</td><td class="n">88.5%</td></tr><tr><td class="">F17(1条)</td><td class="">4 条/30</td><td class="n">5</td><td class="n">38</td><td class="n">50–62</td><td class="n">75% / 89%</td><td class="n">90.2%</td></tr><tr><td class="">F17(1条)</td><td class="">4 条/64</td><td class="n">5</td><td class="n">72</td><td class="n">53–56</td><td class="n">77% / 91%</td><td class="n">91.7%</td></tr><tr><td class="">F17(1条)</td><td class="">6 条/96</td><td class="n">7</td><td class="n">104</td><td class="n">53–58</td><td class="n">78% / 92%</td><td class="n">92.8%</td></tr></tbody></table></div>
+<p>3 条/22 和 4 条/30 的最低 Tm 只有 50 °C，4 条/64 约 53 °C，没有严重二聚体。</p>
+
+<h2>五、加回 V1·V2 的属准确率（留出集 2,196 条，属级最近邻）</h2>
+<div class="tbl"><table><thead><tr><th>方案</th><th>共同位点 ≥60</th><th>≥300</th><th>≥80% 自身位点</th><th>理想（全部扩出）</th></tr></thead><tbody><tr><td class="">S1</td><td class="n">87.8%</td><td class="n">89.5%</td><td class="n">91.0%</td><td class="n">92.6%</td></tr><tr><td class="">紧凑 4 扩增子 95%</td><td class="n">91.4%</td><td class="n">90.9%</td><td class="n">91.5%</td><td class="n">93.6%</td></tr><tr><td class="">4 扩增子 + V1V2[F17(1条) + 2 条/32]</td><td class="n">89.5%</td><td class="n">89.6%</td><td class="n">91.7%</td><td class="n">94.3%</td></tr><tr><td class="">4 扩增子 + V1V2[F17(1条) + 4 条/64]</td><td class="n">90.0%</td><td class="n">90.1%</td><td class="n">91.4%</td><td class="n">94.3%</td></tr><tr><td class="">S1 + V1V2[F17(1条) + 4 条/64]</td><td class="n">83.5%</td><td class="n">84.4%</td><td class="n">91.4%</td><td class="n">93.8%</td></tr></tbody></table></div>
+<p>三列是同一份数据、三种“可比”规则；理想列是假设所有扩增子都扩出。差距随规则变化，说明扩增失败的处理方式对结论的影响比引物本身更大。</p>
+
+<h2>六、局限</h2>
+<ul>
+<li>引物覆盖按“最多 1 个错配、3′ 端 3 个碱基匹配”算，真实 PCR 更复杂。没有检查对人基因组和线粒体的特异性。</li>
+<li>属准确率只测到属，Greengenes 属标签偏向培养过的属；扩增失败的处理是我设计的简化。</li>
+<li>设计集和留出集虽然分开，但都来自同两个数据库；GTDB 没评估。</li>
+</ul>
+<footer>脚本：<code>python_5R/explore/v1v2_scan_R.py</code>、<code>v1v2_scan_F.py</code>、<code>v1v2_eval.py</code>；数据：<code>docs/primer_design/v1v2_*.csv</code>、<code>robust_realistic.csv</code>。</footer>
+</main></div>

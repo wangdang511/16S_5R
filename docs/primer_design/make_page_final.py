@@ -32,6 +32,7 @@ body = f"""
   <p>这是计算机模拟，没有实验验证。数据库是 Greengenes 13_8 和 SILVA 128，不是最新版本。</p>
 </header>
 
+<p style="border:1px solid var(--warn);background:var(--surface);padding:10px 14px;border-radius:8px"><b>更正（以 <code>primer_v1v2.html</code> 为准）：</b>本页“去掉 V1·V2”和“扩增失败算进去”的准确率有评估假象：约 20% 的带标签序列在 8–19 位没有数据，会被错判为没扩出 A1；该指标对“共同位点至少多少才可比”的规则也很敏感。重新评估后 V1·V2 加回去的属准确率收益在误差范围内（理想 +0.7–0.9 个百分点，扩增失败算进去后持平或略差），推荐的 4 个扩增子方案不变；本页里各方案之间 1–3 个百分点的差距只能当粗略排序。</p>
 <h2>一、结论</h2>
 <ul>
 <li><b>90% 并没有比 95% 省引物。</b>4 个扩增子两个目标下都是 10 条寡核苷酸，3 个扩增子都是 8 条；95% 的设计覆盖更好，属鉴定正确率也更高（4 个扩增子 {p1(r4.realistic_acc)}，对 87.0%）。90% 的最小集合倾向于选覆盖刚好达标但不稳的位点，在验证集上 V4 扩增子（A3）在 Greengenes 里只有 50%。</li>
@@ -73,7 +74,7 @@ body = f"""
 <ul>
 <li>属准确率是代理指标，只测到属；Greengenes 属标签偏向培养过的属。</li>
 <li>覆盖率是序列匹配规则的结果，不是实际 PCR 效率；热力学检查是基于 primer3 的近似。没有检查对人基因组和线粒体的特异性。</li>
-<li>池里的 A5-F 是已知的弱点；V1·V2 在这套方案里被去掉了，所以没有 V1·V2 的信息。</li>
+<li>池里的 A5-F 是已知的弱点；V1·V2 在这套方案里被去掉了；单独优化 V1·V2 引物后的评估见 primer_v1v2.html。</li>
 <li>数据库不是最新版本，GTDB 没评估；k-mer 数据库需要用新引物重建，SMURF 的区域数（<code>nR = 5</code>）要改。</li>
 </ul>
 <footer>脚本：<code>python_5R/compact_primers.py</code>、<code>python_5R/explore/ 下的 run_compact.py、pool_opt.py、refine.py、final_eval.py</code>；数据：<code>docs/primer_design/final_compact_eval.csv</code>、<code>final_oligos.json</code>。</footer>
