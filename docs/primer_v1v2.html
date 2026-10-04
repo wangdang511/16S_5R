@@ -130,11 +130,19 @@ footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid va
 <div class="tbl"><table><thead><tr><th>方案</th><th>寡核苷酸</th><th>展开数</th><th>Tm °C</th><th>严重二聚体</th><th>全部扩出 SILVA / GG</th><th>理想</th><th>≥60</th><th>≥300</th><th>≥80%</th></tr></thead><tbody><tr><td class="">V1V2 未均衡 (3条/22)</td><td class="n">14</td><td class="n">86</td><td class="n">50.1–63.5</td><td class="n">0</td><td class="n">60% / 72%</td><td class="n">95.4%</td><td class="n">88.7%</td><td class="n">88.6%</td><td class="n">91.3%</td></tr><tr><td class="">V1V2 Tm 均衡 (≥54)</td><td class="n">14</td><td class="n">86</td><td class="n">50.8–63.5</td><td class="n">0</td><td class="n">59% / 72%</td><td class="n">95.4%</td><td class="n">88.6%</td><td class="n">88.5%</td><td class="n">91.1%</td></tr><tr><td class="">4 个扩增子（推荐）</td><td class="n">10</td><td class="n">56</td><td class="n">50.8–63.5</td><td class="n">0</td><td class="n">67% / 81%</td><td class="n">94.2%</td><td class="n">91.4%</td><td class="n">90.9%</td><td class="n">91.5%</td></tr></tbody></table></div>
 <p><b>结论：并入后寡核苷酸从 10 条增加到 14 条，“5 个扩增子都扩出”的序列只有 59%（SILVA）/ 72%（GG），低于 4 个扩增子的 67% / 81%；理想准确率多 1.2 个百分点，但算入扩增失败后三种规则下是 88.6–88.7 / 88.6 / 91.2%，不比 4 个扩增子（91.4 / 90.9 / 91.5%）好。</b>所以我仍然不建议把 V1·V2 并入推荐设计；这一版保留作为需要 V1·V2 信息时的备选。</p>
 <p>更正：我在对话里口头给出过“加 V1·V2 后 91.3 / 91.3 / 91.3%”，这个数字是错的，正确的是上表和第五节的数字。</p>
-<h2>七、局限</h2>
+<h2>七、为什么多一个区域，准确率反而下降？——指标的问题</h2>
+<p>多出来的 V1·V2 数据最差也可以不用，所以 5 个扩增子不应该比 4 个差。第六节的下降是我用的“扩增失败也算”指标不单调造成的：它把所有扩增子的位点合在一起，按错配率找最近邻，V1·V2 的位点一加进来，谁和谁“可比”、谁是最近邻都会变，噪声大的区域会把原来正确的最近邻挤掉。用一个单调的规则重算：<b>先只用 4 个扩增子找最近邻，V1·V2 仅在平局时用来打破平局，或者在 4 个扩增子都没扩出时兜底</b>（留出集 2,196 条）：</p>
+<div class="tbl"><table><thead><tr><th>规则</th><th>共同位点 ≥60</th><th>≥300</th><th>≥80% 自身位点</th></tr></thead><tbody>
+<tr><td>4 个扩增子</td><td class="n">91.4%</td><td class="n">90.9%</td><td class="n">91.5%</td></tr>
+<tr><td>5 个扩增子，V1·V2 只作平局/兜底</td><td class="n">91.6%</td><td class="n">90.9%</td><td class="n">91.6%</td></tr>
+<tr><td>5 个扩增子，全部一起算（第六节）</td><td class="n">88.7%</td><td class="n">88.6%</td><td class="n">91.2%</td></tr>
+</tbody></table></div>
+<p>所以：V1·V2 没有“有害”，只是在这个评估里几乎没有收益，+0.0 到 +0.1 个百分点；理想情况下的 +1.2 个百分点（所有序列都扩出所有区域）在现实里被两件事吃掉：V1·V2 只有约 74%（SILVA）的序列能扩出，而另外 4 个扩增子已经把大部分序列分开了。真实的 SMURF 不是按最近邻错配率算，而是联合求解各区域的数据库匹配，这里的数字只能当粗略估计。</p>
+<h2>八、局限</h2>
 <ul>
 <li>引物覆盖按“最多 1 个错配、3′ 端 3 个碱基匹配”算，真实 PCR 更复杂。没有检查对人基因组和线粒体的特异性。</li>
 <li>属准确率只测到属，Greengenes 属标签偏向培养过的属；扩增失败的处理是我设计的简化。</li>
 <li>设计集和留出集虽然分开，但都来自同两个数据库；GTDB 没评估。</li>
 </ul>
-<footer>脚本：<code>python_5R/explore/v1v2_scan_R.py</code>、<code>v1v2_tm.py</code>、<code>v1v2_scan_F.py</code>、<code>v1v2_eval.py</code>；数据：<code>docs/primer_design/v1v2_*.csv</code>、<code>robust_realistic.csv</code>。</footer>
+<footer>脚本：<code>python_5R/explore/v1v2_scan_R.py</code>、<code>v1v2_tm.py</code>、<code>v1v2_mono.py</code>、<code>v1v2_scan_F.py</code>、<code>v1v2_eval.py</code>；数据：<code>docs/primer_design/v1v2_*.csv</code>、<code>robust_realistic.csv</code>。</footer>
 </main></div>
