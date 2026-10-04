@@ -48,20 +48,35 @@ def coverage(M, ph, tops, side, key=pdz.KEY_PHYLA, minn=10):
     return float(np.mean(per)), float(h.mean()), float(np.min(per))
 
 
-def design_min_set(M, ph, side, target, kmax=6, folds=((4, 2), (8, 3))):
-    """返回满足 target 的最小 k 的引物集合（顶链方向）；同 k 下取总简并数小者"""
+def coverage_blocks(M, ph, tops, side, blocks):
+    """每个参考库（块）各自的主要门平均覆盖率；返回 (最小值, 各块的值)"""
+    h = it.hit_any(M, tops, side)
+    vals = []
+    for sl in blocks:
+        per = [h[sl][ph[sl] == k].mean() for k in pdz.KEY_PHYLA if (ph[sl] == k).sum() >= 10]
+        vals.append(float(np.mean(per)))
+    return min(vals), vals
+
+
+def design_min_set(M, ph, side, target, blocks=None, kmax=6, folds=((4, 2), (8, 3))):
+    """
+    返回满足 target 的最小 k 的引物集合（顶链方向）；同 k 下取总简并数小者。
+    blocks: 各参考库在 M 中的切片；每个库的覆盖率都要 >= target（防止混合后被大库掩盖）。
+    贪心集合是嵌套的：每种简并上限只设计一次到 kmax 条，再取前缀判断。
+    """
+    blocks = blocks or [slice(0, len(M))]
     best = None
-    for k in range(1, kmax + 1):
-        for fold, deg in folds:
-            tops = it.design_set(M, ph, side, k, fold, deg)
-            c = coverage(M, ph, tops, side)
-            if c[0] >= target:
-                tot = sum(len(pdz.expand(t)) for t in tops)
-                if best is None or (len(tops), tot) < (len(best[0]), best[1]):
-                    best = (tops, tot, c)
-        if best is not None:
-            return best
-    return None
+    for fold, deg in folds:
+        tops = it.design_set(M, ph, side, kmax, fold, deg)
+        for k in range(1, len(tops) + 1):
+            worst, vals = coverage_blocks(M, ph, tops[:k], side, blocks)
+            if worst >= target:
+                tot = sum(len(pdz.expand(x)) for x in tops[:k])
+                if best is None or (k, tot) < (len(best[0]), best[1]):
+                    c = coverage(M, ph, tops[:k], side)
+                    best = (tops[:k], tot, (worst,) + tuple(vals) + (c[2],))
+                break
+    return best
 
 
 def site_geometry(orient, p3, L):
@@ -82,7 +97,9 @@ def enumerate_configs(site, design_refs, target, shifts=range(-3, 4), lengths=ra
             M = np.vstack([x[0] for x in Md]); ph = np.concatenate([x[1] for x in Md])
             if len(M) < 200:
                 continue
-            res = design_min_set(M, ph, side, target)
+            cuts = np.cumsum([0] + [len(x[0]) for x in Md])
+            blocks = [slice(cuts[i], cuts[i + 1]) for i in range(len(Md))]
+            res = design_min_set(M, ph, side, target, blocks)
             if res is None:
                 continue
             tops, tot, c = res

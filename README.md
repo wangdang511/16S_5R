@@ -89,6 +89,7 @@ Python 复现与流程讲解
 ----------------
 * `python_5R/` — 与 `mFiles/` 一一对应的 Python 实现（无需 MATLAB），在示例数据上与 `example_results/` 一致。
 * `notebooks/5R_SMURF_step_by_step.ipynb` — 一步一步的复现 Notebook（含输出）。
+* `docs/primer_compact_primers.html` — 覆盖率目标（90% / 95%）下 5、4、3 个扩增子的最少引物设计，含 primer3 的 Tm 与二聚体检查和引物序列。
 * `docs/primer_5R_decision.html` — 缺 V4 的代价、引物调整、扩增子重叠与“优化还是重设计”的判断。
 * `docs/primer_compact_designs.html` — 以属准确率为目标搜索更少扩增子的设计（天花板、扩增子子集、逐块删除）。
 * `docs/primer_v3v4_design.html` — V3+V4 单管设计（扩增子 ≤290 bp），含窗口扫描、属分类准确率评估和引物序列；其余 `docs/primer_*.html` 为前几轮分析，更正说明见各页顶部。
