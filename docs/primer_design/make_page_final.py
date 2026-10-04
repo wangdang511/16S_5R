@@ -76,7 +76,7 @@ body = f"""
 <li>池里的 A5-F 是已知的弱点；V1·V2 在这套方案里被去掉了，所以没有 V1·V2 的信息。</li>
 <li>数据库不是最新版本，GTDB 没评估；k-mer 数据库需要用新引物重建，SMURF 的区域数（<code>nR = 5</code>）要改。</li>
 </ul>
-<footer>脚本：<code>python_5R/compact_primers.py</code>、<code>python_5R/explore/{{run_compact,pool_opt,refine,final_eval}}.py</code>；数据：<code>docs/primer_design/final_compact_eval.csv</code>、<code>final_oligos.json</code>。</footer>
+<footer>脚本：<code>python_5R/compact_primers.py</code>、<code>python_5R/explore/ 下的 run_compact.py、pool_opt.py、refine.py、final_eval.py</code>；数据：<code>docs/primer_design/final_compact_eval.csv</code>、<code>final_oligos.json</code>。</footer>
 </main></div>
 """
 open(DOCS + "/primer_compact_primers.html", "w", encoding="utf-8").write(head + body)
