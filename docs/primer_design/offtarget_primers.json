@@ -1,0 +1,104 @@
+{
+ "5R 现有": [
+  {
+   "name": "R1-F",
+   "seq": "TGGCGAACGGGTGAGTAA"
+  },
+  {
+   "name": "R1-R",
+   "seq": "CCGTGTCTCAGTCCCARTG"
+  },
+  {
+   "name": "R2-F",
+   "seq": "ACTCCTACGGGAGGCAGC"
+  },
+  {
+   "name": "R2-R",
+   "seq": "GTATTACCGCGGCTGCTG"
+  },
+  {
+   "name": "R3-F",
+   "seq": "GTGTAGCGGTGRAATGCG"
+  },
+  {
+   "name": "R3-R",
+   "seq": "CCCGTCAATTCMTTTGAGTT"
+  },
+  {
+   "name": "R4-F",
+   "seq": "GGAGCATGTGGWTTAATTCGA"
+  },
+  {
+   "name": "R4-R",
+   "seq": "CGTTGCGGGACTTAACCC"
+  },
+  {
+   "name": "R5-F",
+   "seq": "GGAGGAAGGTGGGGATGAC"
+  },
+  {
+   "name": "R5-R",
+   "seq": "AAGGCCCGGGAACGTATT"
+  }
+ ],
+ "最终 4 扩增子": [
+  {
+   "name": "A2-F_0",
+   "seq": "YCTACGGGWGGCAGCA"
+  },
+  {
+   "name": "A2-R_1",
+   "seq": "CGGCTGCTGGCACRDA"
+  },
+  {
+   "name": "A3-F_2",
+   "seq": "GGAWTYAYTGGGCGTAAAG"
+  },
+  {
+   "name": "A3-F_3",
+   "seq": "CGGRAWTYATTGGGTTTAAAG"
+  },
+  {
+   "name": "A3-R_4",
+   "seq": "ACTACCRGGGTATCTAAKCC"
+  },
+  {
+   "name": "A4-F_5",
+   "seq": "RAAACTCAAAGGAATTGACGGR"
+  },
+  {
+   "name": "A4-R_6",
+   "seq": "TCRTCCCCACCTTCCY"
+  },
+  {
+   "name": "A5-F_7",
+   "seq": "RCACRCRTGCTACAAT"
+  },
+  {
+   "name": "A5-F_8",
+   "seq": "ACACACGTVMTACAAT"
+  },
+  {
+   "name": "A5-R_9",
+   "seq": "GGYWACCTTGTTACGACTT"
+  }
+ ],
+ "V1V2 追加": [
+  {
+   "name": "A1-F",
+   "seq": "AGRGTTTGATYMTGGCT"
+  },
+  {
+   "name": "A1-R_0",
+   "seq": "TACCYCACCAACWARCT"
+  },
+  {
+   "name": "A1-R_1",
+   "seq": "TACCCCRCCAACTABCT"
+  },
+  {
+   "name": "A1-R_2",
+   "seq": "CGTTACCYTACCAACTARYT"
+  }
+ ]
+}

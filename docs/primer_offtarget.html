@@ -1,0 +1,124 @@
+<title>人基因组脱靶检查</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (~70ch) with full-bleed figures; a sticky step index on wide screens.
+   Color: lab-paper neutrals tinted toward the cobalt accent; nucleotide colors (A/C/G/T, chromatogram convention) as the subject detail. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6675; --line:#d7dde5;
+  --accent:#2747c8; --accent-soft:#e3e8fb;
+  --A:#1f8a4c; --C:#2f62d6; --G:#b07800; --T:#c8372d;
+  --ok:#1f8a4c; --warn:#b07800; --bad:#c8372d;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}.toc{display:none}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:13px;line-height:1.5}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 10px;border-left:2px solid var(--line)}
+.toc a:hover,.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent);outline:none}
+.toc .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+main{min-width:0}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(30px,5vw,44px);line-height:1.2;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--serif);font-weight:800;font-size:26px;line-height:1.3;margin:64px 0 8px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-size:18px;font-weight:700;margin:32px 0 6px}
+p,li{max-width:68ch}
+p{margin:10px 0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+.seq{font-family:var(--mono);letter-spacing:.04em;font-size:13px;white-space:nowrap}
+.sA{color:var(--A)}.sC{color:var(--C)}.sG{color:var(--G)}.sT{color:var(--T)}.sX{color:var(--accent);font-weight:600}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0;overflow-x:auto}
+.figure figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:none}
+svg text{font-family:var(--sans)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.fact{border-top:2px solid var(--ink);padding-top:8px}
+.fact b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.n{text-align:right;font-family:var(--mono);font-size:13px}
+.tbl{overflow-x:auto;margin:14px 0}
+
+/* pipeline steps */
+.steps{list-style:none;padding:0;margin:20px 0;display:grid;gap:0;counter-reset:st}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;position:relative;padding-bottom:26px}
+.step:before{counter-increment:st;content:counter(st);width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--mono);z-index:1}
+.step:after{content:"";position:absolute;left:17px;top:38px;bottom:0;width:2px;background:var(--line)}
+.step:last-child:after{display:none}
+.step h3{margin:4px 0 2px}
+.step .file{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.step .io{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface);white-space:nowrap}
+.pill.k{border-color:var(--accent);color:var(--accent)}
+
+.formula{font-family:var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;font-size:14px;line-height:1.9}
+.note{border-left:3px solid var(--warn);padding:6px 14px;margin:14px 0;background:var(--surface);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p,.card li{font-size:14.5px}
+.card ul{padding-left:18px;margin:6px 0}
+.pri{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:4px;margin-right:6px;vertical-align:2px}
+.p1{background:var(--bad);color:var(--surface)}.p2{background:var(--warn);color:var(--surface)}.p3{background:var(--muted);color:var(--surface)}
+.bugs td:first-child{white-space:nowrap}
+.heat td.h{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink)}
+footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:no-preference){.toc a{transition:color .15s,border-color .15s}}
+</style>
+<div class="wrap"><main style="grid-column:1/-1;width:100%;max-width:980px;margin-inline:auto">
+<header>
+  <div class="eyebrow">16S_5R · 引物设计</div>
+  <h1>对人基因组和线粒体的特异性检查</h1>
+  <p class="lede">线粒体基本安全，没有找到能形成产物的引物对；但对核基因组，新设计里 16–17 nt 的短寡核苷酸有大量近似匹配位点，在人 DNA 占比高的样本（比如 FFPE）里会浪费读段。5R 原引物（≥18 nt）几乎没有这个问题。</p>
+  <p>这是计算机检查：只用序列匹配，没有做实验，也没有算热力学。</p>
+</header>
+
+<h2>一、方法</h2>
+<ul>
+<li>基因组：hg19（UCSC，含 chrM 和未定位的 contig，用的是 bioconda 里的 BSgenome 包），另外单独用 rCRS（NC_012920）检查线粒体。NCBI、UCSC 和 Ensembl 网站在这个环境里访问不了，所以用的是包里的版本，不是 hg38 或 T2T。</li>
+<li>每条引物的所有简并展开序列，在两条链上找：3′ 端 8 nt 必须完全匹配，整体错配数 ≤1、2、3 的位点；再把方向相对、3′ 端相对、间距 80–1500 bp 的命中配成潜在产物（任意两个引物都可配对，因为是同一个管）。</li>
+</ul>
+
+<h2>二、结果</h2>
+<div class="tbl"><table><thead><tr><th>引物集合</th><th>寡核苷酸数</th><th>≤1 错配的位点</th><th>≤2 错配的位点</th><th>≤3 错配的位点</th><th>≤2 错配的潜在产物</th><th>≤3 错配的潜在产物</th></tr></thead><tbody><tr><td class="">5R 现有</td><td class="n">10</td><td class="n">5</td><td class="n">114</td><td class="">1,251</td><td class="n">0</td><td class="n">0</td></tr><tr><td class="">最终 4 扩增子</td><td class="n">10</td><td class="">1,062</td><td class="">9,788</td><td class="">58,473</td><td class="n">15</td><td class="n">490</td></tr><tr><td class="">V1V2 追加</td><td class="n">4</td><td class="n">218</td><td class="">3,283</td><td class="">23,973</td><td class="n">1</td><td class="n">67</td></tr></tbody></table></div>
+<ul>
+<li><b>线粒体（rCRS）</b>：最终 4 个扩增子的寡核苷酸有 4 个命中（≤4 错配），都在 12S rRNA 基因里：A2-R_1 在 883（2 个错配）、A3-R_4 在 1072（4 个）、A5-R_9 在 1556（3 个和 4 个）。V1·V2 追加的引物有 5 个命中，最好的是 A1-R_0 在 13851（1 个错配，ND5 基因），其余 4 个错配。5R 只有 R3-R 在 1160 一个命中（4 个错配）。所有集合在线粒体上都找不到相对方向的命中对，所以没有潜在产物。</li>
+<li><b>核基因组</b>：5R 在 ≤2 个错配下有 114 个位点、没有潜在产物；最终 4 个扩增子有 9,788 个位点、15 个潜在产物；V1·V2 追加有 3,283 个位点、1 个潜在产物。放宽到 ≤3 个错配，最终 4 个扩增子有 490 个潜在产物。</li>
+<li><b>风险集中在短寡核苷酸</b>：见下表。≥19 nt 的引物（A3-F、A3-R、A4-F、A5-R、V1·V2 的 A1-R_2）每个展开序列只有 0–2 个位点，和 5R 差不多；16–17 nt 的（A4-R_6、A2-F、A5-F、A2-R、A1-F）有几百到近 1,000 个。</li>
+</ul>
+<div class="tbl"><table><thead><tr><th>集合</th><th>寡核苷酸</th><th>序列 5′→3′</th><th>nt</th><th>展开数</th><th>≤2 错配的位点</th><th>每个展开序列的位点数</th></tr></thead><tbody><tr><td class="">最终 4 扩增子</td><td class="">A4-R_6</td><td class="seq">TCRTCCCCACCTTCCY</td><td class="n">16</td><td class="n">4</td><td class="">3,799</td><td class="n">949.8</td></tr><tr><td class="">最终 4 扩增子</td><td class="">A2-F_0</td><td class="seq">YCTACGGGWGGCAGCA</td><td class="n">16</td><td class="n">4</td><td class="">1,664</td><td class="n">416</td></tr><tr><td class="">最终 4 扩增子</td><td class="">A5-F_8</td><td class="seq">ACACACGTVMTACAAT</td><td class="n">16</td><td class="n">6</td><td class="">2,016</td><td class="n">336</td></tr><tr><td class="">V1V2 追加</td><td class="">A1-F</td><td class="seq">AGRGTTTGATYMTGGCT</td><td class="n">17</td><td class="n">8</td><td class="">2,329</td><td class="n">291.1</td></tr><tr><td class="">最终 4 扩增子</td><td class="">A2-R_1</td><td class="seq">CGGCTGCTGGCACRDA</td><td class="n">16</td><td class="n">6</td><td class="">1,385</td><td class="n">230.8</td></tr><tr><td class="">最终 4 扩增子</td><td class="">A5-F_7</td><td class="seq">RCACRCRTGCTACAAT</td><td class="n">16</td><td class="n">8</td><td class="">1,136</td><td class="n">142</td></tr><tr><td class="">V1V2 追加</td><td class="">A1-R_0</td><td class="seq">TACCYCACCAACWARCT</td><td class="n">17</td><td class="n">8</td><td class="n">729</td><td class="n">91.1</td></tr><tr><td class="">V1V2 追加</td><td class="">A1-R_1</td><td class="seq">TACCCCRCCAACTABCT</td><td class="n">17</td><td class="n">6</td><td class="n">297</td><td class="n">49.5</td></tr><tr><td class="">5R 现有</td><td class="">R5-F</td><td class="seq">GGAGGAAGGTGGGGATGAC</td><td class="n">19</td><td class="n">1</td><td class="n">30</td><td class="n">30</td></tr><tr><td class="">5R 现有</td><td class="">R2-F</td><td class="seq">ACTCCTACGGGAGGCAGC</td><td class="n">18</td><td class="n">1</td><td class="n">28</td><td class="n">28</td></tr><tr><td class="">5R 现有</td><td class="">R1-F</td><td class="seq">TGGCGAACGGGTGAGTAA</td><td class="n">18</td><td class="n">1</td><td class="n">17</td><td class="n">17</td></tr><tr><td class="">5R 现有</td><td class="">R2-R</td><td class="seq">GTATTACCGCGGCTGCTG</td><td class="n">18</td><td class="n">1</td><td class="n">10</td><td class="n">10</td></tr><tr><td class="">5R 现有</td><td class="">R1-R</td><td class="seq">CCGTGTCTCAGTCCCARTG</td><td class="n">19</td><td class="n">2</td><td class="n">16</td><td class="n">8</td></tr><tr><td class="">5R 现有</td><td class="">R4-R</td><td class="seq">CGTTGCGGGACTTAACCC</td><td class="n">18</td><td class="n">1</td><td class="n">4</td><td class="n">4</td></tr><tr><td class="">5R 现有</td><td class="">R3-R</td><td class="seq">CCCGTCAATTCMTTTGAGTT</td><td class="n">20</td><td class="n">2</td><td class="n">5</td><td class="n">2.5</td></tr></tbody></table></div>
+
+<h2>三、含义和建议</h2>
+<ul>
+<li>脱靶产物不是 16S，不会被 SMURF 的 16S 数据库匹配到，主要的后果是在人 DNA 很多的样本里浪费读段、拉低有效数据量；会不会真的扩出，取决于退火温度和人 DNA 量，这里没法判断。</li>
+<li>最直接的修正：给这几条短寡核苷酸的 5′ 端各延长 2–4 个碱基（沿 16S 模板），这样既减少人基因组的匹配，也能同时抬高它们的 Tm（A5-F 的两条本来就偏低），代价是覆盖率会略降，需要重新评估。这一步我还没做。</li>
+<li>不建议为此放弃新设计；也要承认 5R 在这点上更好。</li>
+</ul>
+
+<h2>四、局限</h2>
+<ul>
+<li>hg19 不是最新版本，也缺少 rDNA 阵列等重复区域；人 18S/28S rRNA 没有单独检查，核 rDNA 可能比表中更多。</li>
+<li>“3′ 端 8 nt 完全匹配 + 总错配数”是粗略规则，没考虑错配位置、GC、二级结构，也没算热力学；位点数不等于会扩出。</li>
+<li>只检查了人，没有检查宿主以外的污染或样本里的其他真核生物。</li>
+</ul>
+<footer>脚本：<code>python_5R/explore/offtarget.py</code>；数据：<code>docs/primer_design/offtarget_*.csv</code>、<code>offtarget_primers.json</code>。</footer>
+</main></div>

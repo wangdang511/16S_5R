@@ -1,0 +1,60 @@
+"""生成 docs/primer_offtarget.html"""
+import re, html
+import pandas as pd
+HERE = __file__.rsplit("/", 1)[0]; DOCS = HERE.rsplit("/", 1)[0]
+old = open(DOCS + "/5R_SMURF_pipeline.html", encoding="utf-8").read()
+head = re.sub(r"<title>.*?</title>", "<title>人基因组脱靶检查</title>", old[:old.index("</style>") + 8], 1)
+NUMRE = re.compile(r"^[\d.%/ –→+-]+$")
+def cell(v, seq=False): return '<td class="' + ("seq" if seq else ("n" if NUMRE.match(str(v)) else "")) + '">' + html.escape(str(v)) + "</td>"
+def tbl(rows, heads, seqcol=None): return '<div class="tbl"><table><thead><tr>' + "".join(f"<th>{c}</th>" for c in heads) + "</tr></thead><tbody>" + "".join("<tr>" + "".join(cell(v, i == seqcol) for i, v in enumerate(r)) + "</tr>" for r in rows) + "</tbody></table></div>"
+S = pd.read_csv(f"{HERE}/offtarget_summary.csv"); O = pd.read_csv(f"{HERE}/offtarget_per_oligo.csv")
+rows = []
+for sn in ("5R 现有", "最终 4 扩增子", "V1V2 追加"):
+    d = S[S.set == sn].set_index("mm")
+    rows.append([sn, int(d.oligos.iloc[0])] + [f"{int(d.loc[m].loci):,}" for m in (1, 2, 3)] + [int(d.loc[m].products) for m in (2, 3)])
+t1 = tbl(rows, ["引物集合", "寡核苷酸数", "≤1 错配的位点", "≤2 错配的位点", "≤3 错配的位点", "≤2 错配的潜在产物", "≤3 错配的潜在产物"])
+O = O.sort_values("loci_per_expansion", ascending=False)
+t2 = tbl([[r.set, r.oligo, r.seq, r.nt, r.expansions, f"{r.loci_le2mm:,}", f"{r.loci_per_expansion:g}"] for _, r in O.iterrows() if r.loci_per_expansion >= 2],
+         ["集合", "寡核苷酸", "序列 5′→3′", "nt", "展开数", "≤2 错配的位点", "每个展开序列的位点数"], seqcol=2)
+body = f"""
+<div class="wrap"><main style="grid-column:1/-1;width:100%;max-width:980px;margin-inline:auto">
+<header>
+  <div class="eyebrow">16S_5R · 引物设计</div>
+  <h1>对人基因组和线粒体的特异性检查</h1>
+  <p class="lede">线粒体基本安全，没有找到能形成产物的引物对；但对核基因组，新设计里 16–17 nt 的短寡核苷酸有大量近似匹配位点，在人 DNA 占比高的样本（比如 FFPE）里会浪费读段。5R 原引物（≥18 nt）几乎没有这个问题。</p>
+  <p>这是计算机检查：只用序列匹配，没有做实验，也没有算热力学。</p>
+</header>
+
+<h2>一、方法</h2>
+<ul>
+<li>基因组：hg19（UCSC，含 chrM 和未定位的 contig，用的是 bioconda 里的 BSgenome 包），另外单独用 rCRS（NC_012920）检查线粒体。NCBI、UCSC 和 Ensembl 网站在这个环境里访问不了，所以用的是包里的版本，不是 hg38 或 T2T。</li>
+<li>每条引物的所有简并展开序列，在两条链上找：3′ 端 8 nt 必须完全匹配，整体错配数 ≤1、2、3 的位点；再把方向相对、3′ 端相对、间距 80–1500 bp 的命中配成潜在产物（任意两个引物都可配对，因为是同一个管）。</li>
+</ul>
+
+<h2>二、结果</h2>
+{t1}
+<ul>
+<li><b>线粒体（rCRS）</b>：最终 4 个扩增子的寡核苷酸有 4 个命中（≤4 错配），都在 12S rRNA 基因里：A2-R_1 在 883（2 个错配）、A3-R_4 在 1072（4 个）、A5-R_9 在 1556（3 个和 4 个）。V1·V2 追加的引物有 5 个命中，最好的是 A1-R_0 在 13851（1 个错配，ND5 基因），其余 4 个错配。5R 只有 R3-R 在 1160 一个命中（4 个错配）。所有集合在线粒体上都找不到相对方向的命中对，所以没有潜在产物。</li>
+<li><b>核基因组</b>：5R 在 ≤2 个错配下有 114 个位点、没有潜在产物；最终 4 个扩增子有 9,788 个位点、15 个潜在产物；V1·V2 追加有 3,283 个位点、1 个潜在产物。放宽到 ≤3 个错配，最终 4 个扩增子有 490 个潜在产物。</li>
+<li><b>风险集中在短寡核苷酸</b>：见下表。≥19 nt 的引物（A3-F、A3-R、A4-F、A5-R、V1·V2 的 A1-R_2）每个展开序列只有 0–2 个位点，和 5R 差不多；16–17 nt 的（A4-R_6、A2-F、A5-F、A2-R、A1-F）有几百到近 1,000 个。</li>
+</ul>
+{t2}
+
+<h2>三、含义和建议</h2>
+<ul>
+<li>脱靶产物不是 16S，不会被 SMURF 的 16S 数据库匹配到，主要的后果是在人 DNA 很多的样本里浪费读段、拉低有效数据量；会不会真的扩出，取决于退火温度和人 DNA 量，这里没法判断。</li>
+<li>最直接的修正：给这几条短寡核苷酸的 5′ 端各延长 2–4 个碱基（沿 16S 模板），这样既减少人基因组的匹配，也能同时抬高它们的 Tm（A5-F 的两条本来就偏低），代价是覆盖率会略降，需要重新评估。这一步我还没做。</li>
+<li>不建议为此放弃新设计；也要承认 5R 在这点上更好。</li>
+</ul>
+
+<h2>四、局限</h2>
+<ul>
+<li>hg19 不是最新版本，也缺少 rDNA 阵列等重复区域；人 18S/28S rRNA 没有单独检查，核 rDNA 可能比表中更多。</li>
+<li>“3′ 端 8 nt 完全匹配 + 总错配数”是粗略规则，没考虑错配位置、GC、二级结构，也没算热力学；位点数不等于会扩出。</li>
+<li>只检查了人，没有检查宿主以外的污染或样本里的其他真核生物。</li>
+</ul>
+<footer>脚本：<code>python_5R/explore/offtarget.py</code>；数据：<code>docs/primer_design/offtarget_*.csv</code>、<code>offtarget_primers.json</code>。</footer>
+</main></div>
+"""
+open(DOCS + "/primer_offtarget.html", "w", encoding="utf-8").write(head + body)
+print("ok")
