@@ -4,7 +4,7 @@ warnings.filterwarnings('ignore'); pd.set_option('display.width',250); pd.set_op
 SC='/tmp/claude-0/-home-user-16S-5R/0a157df1-6424-5d79-bd19-c9f07612faab/scratchpad/'
 src=open(SC+'ext2.py').read().split("rows=[]")[0]
 exec(src)
-sites=json.load(open(SC+'a2r_final5.json'))
+sites=json.load(open(SC+'a5f_final5.json'))
 AMP={'A1':'V1·V2','A2':'V3','A3':'V4','A4':'V6·V7','A5':'V8·V9'}
 rows=[]; GC=lambda s:sum(c in 'GCS' for c in s)/len(s)
 for sn in sorted(sites):
