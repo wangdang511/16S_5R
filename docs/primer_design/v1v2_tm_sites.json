@@ -1,0 +1,43 @@
+{
+ "A1-F": {
+  "orient": "F",
+  "start": 8,
+  "L": 17,
+  "prim": [
+   "AGRGTTTGATYMTGGCT"
+  ],
+  "ext": [
+   0
+  ]
+ },
+ "A1-R_unbalanced": {
+  "orient": "R",
+  "start": 246,
+  "L": 17,
+  "prim": [
+   "TACCYCACCAACWARCT",
+   "TACCCCRCCAACTABCT",
+   "TACCYTACCAACTARYT"
+  ],
+  "ext": [
+   0,
+   0,
+   0
+  ]
+ },
+ "A1-R_balanced": {
+  "orient": "R",
+  "start": 246,
+  "L": 17,
+  "prim": [
+   "TACCYCACCAACWARCT",
+   "TACCCCRCCAACTABCT",
+   "CGTTACCYTACCAACTARYT"
+  ],
+  "ext": [
+   0,
+   0,
+   3
+  ]
+ }
+}

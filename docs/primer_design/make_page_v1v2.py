@@ -24,6 +24,10 @@ rowsD += [[r.design.replace("S1 + V1V2", "S1 + V1V2"), p1(r.abs60), p1(r.abs300)
 tR = tbl(rowsR, ["引物条数", "单条展开上限", "展开后总数", "位置（E. coli）", "位点覆盖率（Greengenes / SILVA 取较低）", "序列 5′→3′（顶链方向）"], seqcol=5)
 tF = tbl(rowsF, ["引物条数", "单条展开上限", "展开后总数", "位置", "位点覆盖率", "序列 5′→3′"], seqcol=5)
 tA = tbl(rowsA, ["A1-F", "A1-R", "寡核苷酸数", "展开后总数", "Tm °C", "扩增子覆盖：SILVA / GG", "留出集覆盖"])
+T = pd.read_csv(f"{HERE}/v1v2_tm_design.csv")
+tT = tbl([["未均衡", "TACCYCACCAACWARCT / TACCCCRCCAACTABCT / TACCYTACCAACTARYT", "55.4 / 58.0 / 50.1"], ["均衡（第三条延长 3 nt）", "TACCYCACCAACWARCT / TACCCCRCCAACTABCT / CGTTACCYTACCAACTARYT", "55.4 / 58.0 / 56.8"]], ["A1-R 版本", "寡核苷酸 5′→3′", "Tm °C"], seqcol=1)
+tE = tbl([[r.design, int(r.oligos), int(r.expansions), f"{r.Tm_min}–{r.Tm_max}", int(r.severe), f"{r.SILVA_all*100:.0f}% / {r.GG_all*100:.0f}%", p1(r.ideal_acc), p1(r.abs60), p1(r.abs300), p1(r["frac0.8"])] for _, r in T.iterrows()] + [["4 个扩增子（推荐）", 10, 56, "50.8–63.5", 0, "67% / 81%", "94.2%", "91.4%", "90.9%", "91.5%"]],
+         ["方案", "寡核苷酸", "展开数", "Tm °C", "严重二聚体", "全部扩出 SILVA / GG", "理想", "≥60", "≥300", "≥80%"])
 tD = tbl(rowsD, ["方案", "共同位点 ≥60", "≥300", "≥80% 自身位点", "理想（全部扩出）"])
 body = f"""
 <div class="wrap"><main style="grid-column:1/-1;width:100%;max-width:980px;margin-inline:auto">
@@ -64,13 +68,21 @@ body = f"""
 {tD}
 <p>三列是同一份数据、三种“可比”规则；理想列是假设所有扩增子都扩出。差距随规则变化，说明扩增失败的处理方式对结论的影响比引物本身更大。</p>
 
-<h2>六、局限</h2>
+<h2>六、Tm 均衡后，5 个扩增子方案（推荐的 4 个 + V1·V2）</h2>
+<p>取第三节的 3 条/22（246–262）作 A1-R，A1-F 用 17 nt 单条。原版第三条 <code>TACCYTACCAACTARYT</code> 的 Tm 只有 50.1 °C。把它的 5′ 端沿模板延长 3 个碱基（取设计集中该寡核苷酸所覆盖序列的多数碱基）后：</p>
+{tT}
+<p>Tm 从 50.1 升到 56.8 °C，和另外两条（55.4、58.0）接近；位点覆盖率在 SILVA / Greengenes 里各掉约 1.9 / 0.4 个百分点（91.4→89.5%，89.0→88.6%），因为新增的 5′ 碱基给部分序列增加了错配。池内没有严重二聚体和发夹。整个池的最低 Tm 仍是 A5-F 的 50.8 °C，不是 A1-R。</p>
+<p>并入推荐设计后（A1 = V1·V2，其余顺延）：</p>
+{tE}
+<p><b>结论：并入后寡核苷酸从 10 条增加到 14 条，“5 个扩增子都扩出”的序列只有 59%（SILVA）/ 72%（GG），低于 4 个扩增子的 67% / 81%；理想准确率多 1.2 个百分点，但算入扩增失败后三种规则下是 88.6–88.7 / 88.6 / 91.2%，不比 4 个扩增子（91.4 / 90.9 / 91.5%）好。</b>所以我仍然不建议把 V1·V2 并入推荐设计；这一版保留作为需要 V1·V2 信息时的备选。</p>
+<p>更正：我在对话里口头给出过“加 V1·V2 后 91.3 / 91.3 / 91.3%”，这个数字是错的，正确的是上表和第五节的数字。</p>
+<h2>七、局限</h2>
 <ul>
 <li>引物覆盖按“最多 1 个错配、3′ 端 3 个碱基匹配”算，真实 PCR 更复杂。没有检查对人基因组和线粒体的特异性。</li>
 <li>属准确率只测到属，Greengenes 属标签偏向培养过的属；扩增失败的处理是我设计的简化。</li>
 <li>设计集和留出集虽然分开，但都来自同两个数据库；GTDB 没评估。</li>
 </ul>
-<footer>脚本：<code>python_5R/explore/v1v2_scan_R.py</code>、<code>v1v2_scan_F.py</code>、<code>v1v2_eval.py</code>；数据：<code>docs/primer_design/v1v2_*.csv</code>、<code>robust_realistic.csv</code>。</footer>
+<footer>脚本：<code>python_5R/explore/v1v2_scan_R.py</code>、<code>v1v2_tm.py</code>、<code>v1v2_scan_F.py</code>、<code>v1v2_eval.py</code>；数据：<code>docs/primer_design/v1v2_*.csv</code>、<code>robust_realistic.csv</code>。</footer>
 </main></div>
 """
 open(DOCS + "/primer_v1v2.html", "w", encoding="utf-8").write(head + body)

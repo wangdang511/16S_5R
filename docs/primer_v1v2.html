@@ -122,11 +122,19 @@ footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid va
 <div class="tbl"><table><thead><tr><th>方案</th><th>共同位点 ≥60</th><th>≥300</th><th>≥80% 自身位点</th><th>理想（全部扩出）</th></tr></thead><tbody><tr><td class="">S1</td><td class="n">87.8%</td><td class="n">89.5%</td><td class="n">91.0%</td><td class="n">92.6%</td></tr><tr><td class="">紧凑 4 扩增子 95%</td><td class="n">91.4%</td><td class="n">90.9%</td><td class="n">91.5%</td><td class="n">93.6%</td></tr><tr><td class="">4 扩增子 + V1V2[F17(1条) + 2 条/32]</td><td class="n">89.5%</td><td class="n">89.6%</td><td class="n">91.7%</td><td class="n">94.3%</td></tr><tr><td class="">4 扩增子 + V1V2[F17(1条) + 4 条/64]</td><td class="n">90.0%</td><td class="n">90.1%</td><td class="n">91.4%</td><td class="n">94.3%</td></tr><tr><td class="">S1 + V1V2[F17(1条) + 4 条/64]</td><td class="n">83.5%</td><td class="n">84.4%</td><td class="n">91.4%</td><td class="n">93.8%</td></tr></tbody></table></div>
 <p>三列是同一份数据、三种“可比”规则；理想列是假设所有扩增子都扩出。差距随规则变化，说明扩增失败的处理方式对结论的影响比引物本身更大。</p>
 
-<h2>六、局限</h2>
+<h2>六、Tm 均衡后，5 个扩增子方案（推荐的 4 个 + V1·V2）</h2>
+<p>取第三节的 3 条/22（246–262）作 A1-R，A1-F 用 17 nt 单条。原版第三条 <code>TACCYTACCAACTARYT</code> 的 Tm 只有 50.1 °C。把它的 5′ 端沿模板延长 3 个碱基（取设计集中该寡核苷酸所覆盖序列的多数碱基）后：</p>
+<div class="tbl"><table><thead><tr><th>A1-R 版本</th><th>寡核苷酸 5′→3′</th><th>Tm °C</th></tr></thead><tbody><tr><td class="">未均衡</td><td class="seq">TACCYCACCAACWARCT / TACCCCRCCAACTABCT / TACCYTACCAACTARYT</td><td class="n">55.4 / 58.0 / 50.1</td></tr><tr><td class="">均衡（第三条延长 3 nt）</td><td class="seq">TACCYCACCAACWARCT / TACCCCRCCAACTABCT / CGTTACCYTACCAACTARYT</td><td class="n">55.4 / 58.0 / 56.8</td></tr></tbody></table></div>
+<p>Tm 从 50.1 升到 56.8 °C，和另外两条（55.4、58.0）接近；位点覆盖率在 SILVA / Greengenes 里各掉约 1.9 / 0.4 个百分点（91.4→89.5%，89.0→88.6%），因为新增的 5′ 碱基给部分序列增加了错配。池内没有严重二聚体和发夹。整个池的最低 Tm 仍是 A5-F 的 50.8 °C，不是 A1-R。</p>
+<p>并入推荐设计后（A1 = V1·V2，其余顺延）：</p>
+<div class="tbl"><table><thead><tr><th>方案</th><th>寡核苷酸</th><th>展开数</th><th>Tm °C</th><th>严重二聚体</th><th>全部扩出 SILVA / GG</th><th>理想</th><th>≥60</th><th>≥300</th><th>≥80%</th></tr></thead><tbody><tr><td class="">V1V2 未均衡 (3条/22)</td><td class="n">14</td><td class="n">86</td><td class="n">50.1–63.5</td><td class="n">0</td><td class="n">60% / 72%</td><td class="n">95.4%</td><td class="n">88.7%</td><td class="n">88.6%</td><td class="n">91.3%</td></tr><tr><td class="">V1V2 Tm 均衡 (≥54)</td><td class="n">14</td><td class="n">86</td><td class="n">50.8–63.5</td><td class="n">0</td><td class="n">59% / 72%</td><td class="n">95.4%</td><td class="n">88.6%</td><td class="n">88.5%</td><td class="n">91.1%</td></tr><tr><td class="">4 个扩增子（推荐）</td><td class="n">10</td><td class="n">56</td><td class="n">50.8–63.5</td><td class="n">0</td><td class="n">67% / 81%</td><td class="n">94.2%</td><td class="n">91.4%</td><td class="n">90.9%</td><td class="n">91.5%</td></tr></tbody></table></div>
+<p><b>结论：并入后寡核苷酸从 10 条增加到 14 条，“5 个扩增子都扩出”的序列只有 59%（SILVA）/ 72%（GG），低于 4 个扩增子的 67% / 81%；理想准确率多 1.2 个百分点，但算入扩增失败后三种规则下是 88.6–88.7 / 88.6 / 91.2%，不比 4 个扩增子（91.4 / 90.9 / 91.5%）好。</b>所以我仍然不建议把 V1·V2 并入推荐设计；这一版保留作为需要 V1·V2 信息时的备选。</p>
+<p>更正：我在对话里口头给出过“加 V1·V2 后 91.3 / 91.3 / 91.3%”，这个数字是错的，正确的是上表和第五节的数字。</p>
+<h2>七、局限</h2>
 <ul>
 <li>引物覆盖按“最多 1 个错配、3′ 端 3 个碱基匹配”算，真实 PCR 更复杂。没有检查对人基因组和线粒体的特异性。</li>
 <li>属准确率只测到属，Greengenes 属标签偏向培养过的属；扩增失败的处理是我设计的简化。</li>
 <li>设计集和留出集虽然分开，但都来自同两个数据库；GTDB 没评估。</li>
 </ul>
-<footer>脚本：<code>python_5R/explore/v1v2_scan_R.py</code>、<code>v1v2_scan_F.py</code>、<code>v1v2_eval.py</code>；数据：<code>docs/primer_design/v1v2_*.csv</code>、<code>robust_realistic.csv</code>。</footer>
+<footer>脚本：<code>python_5R/explore/v1v2_scan_R.py</code>、<code>v1v2_tm.py</code>、<code>v1v2_scan_F.py</code>、<code>v1v2_eval.py</code>；数据：<code>docs/primer_design/v1v2_*.csv</code>、<code>robust_realistic.csv</code>。</footer>
 </main></div>
