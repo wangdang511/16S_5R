@@ -24,6 +24,13 @@ t3 = tbl(r3, ["寡核苷酸", "原序列", "延长后", "延长 nt", "Tm °C", "
 t4 = tbl([[r.design, int(r.oligos), int(r.expansions), f"{r.Tm_min}–{r.Tm_max}", int(r.severe), r.SILVA_amp, r.GG_amp, f"{r.SILVA_all * 100:.1f}% / {r.GG_all * 100:.1f}%", f"{r.ideal * 100:.1f}%", f"{r.abs60 * 100:.1f} / {r.abs300 * 100:.1f} / {r['frac0.8'] * 100:.1f}%"] for _, r in D.iterrows()],
          ["方案", "寡核苷酸", "展开数", "Tm °C", "严重二聚体", "扩增子覆盖 SILVA", "扩增子覆盖 GG", "全部扩出 SILVA / GG", "理想准确率", "属准确率（三种规则）"])
 t5 = tbl([[r.set.replace("扩增子延长后", " 个扩增子（延长后）") if False else r.set, int(r.mm), f"{int(r.loci):,}", int(r.products)] for _, r in ES.iterrows()], ["延长后的集合", "错配上限", "人基因组位点", "潜在产物（80–1500 bp）"])
+A = pd.read_csv(f"{HERE}/a2r_eval.csv"); AO = pd.read_csv(f"{HERE}/a2r_offtarget.csv").set_index("name"); AD = pd.read_csv(f"{HERE}/a2r_design_eval.csv"); AS = pd.read_csv(f"{HERE}/a2r_offtarget_summary.csv")
+sel = ["A2R_旧512_L16", "A2R_旧512_延长+2", "A2R_505_L19_k1_f8", "A2R_505_L18_k1_f8", "A2R_508_L18_k1_f8", "A2R_509_L18_k2_f4", "A2R_509_L17_k2_f4"]
+lab = {"A2R_旧512_L16": "原（512–527，16 nt）", "A2R_旧512_延长+2": "原 + 延长 2 nt（上一节）", "A2R_505_L19_k1_f8": "移到 505，19 nt（推荐）", "A2R_505_L18_k1_f8": "移到 505，18 nt", "A2R_508_L18_k1_f8": "移到 508，18 nt", "A2R_509_L18_k2_f4": "移到 509，18 nt，2 条", "A2R_509_L17_k2_f4": "移到 509，17 nt，2 条"}
+t6 = tbl([[lab[n], r.prim, r.Tm, f"{r.SILVA * 100:.1f}% / {r.GG * 100:.1f}%", int(r.nexp), f"{AO.loc[n].loci2_per_exp:g}", int(AO.loc[n].rCRS)] for n, r in A.set_index("name").loc[sel].iterrows()],
+         ["A2-R 版本", "序列 5′→3′", "Tm °C", "位点覆盖率 SILVA / GG", "展开数", "人基因组位点 / 展开序列（≤2 错配）", "rCRS 命中（≤4 错配）"], seqcol=1)
+t7 = tbl([[r.design, int(r.oligos), int(r.expansions), f"{r.Tm_min}–{r.Tm_max}", r.SILVA_amp, r.GG_amp, f"{r.SILVA_all * 100:.1f}% / {r.GG_all * 100:.1f}%", f"{r.ideal * 100:.1f}%", f"{r.abs60 * 100:.1f} / {r.abs300 * 100:.1f} / {r['frac0.8'] * 100:.1f}%"] for _, r in AD.iterrows()],
+         ["方案", "寡核苷酸", "展开数", "Tm °C", "扩增子覆盖 SILVA", "扩增子覆盖 GG", "全部扩出 SILVA / GG", "理想准确率", "属准确率（三种规则）"])
 t2 = tbl([[r.set, r.oligo, r.seq, r.nt, r.expansions, f"{r.loci_le2mm:,}", f"{r.loci_per_expansion:g}"] for _, r in O.iterrows() if r.loci_per_expansion >= 2],
          ["集合", "寡核苷酸", "序列 5′→3′", "nt", "展开数", "≤2 错配的位点", "每个展开序列的位点数"], seqcol=2)
 body = f"""
@@ -70,7 +77,18 @@ body = f"""
 <li><b>一个临界的自二聚体</b>：A5-F_7 延长后（`GCTRCACRCRTGCTACAAT`）自身 ΔG −9.0 kcal/mol（3′ 端 −3.5），刚到我设的阈值；任何长度的延长都会这样，不延长（16 nt）则没有，但人基因组位点 142 个/展开序列。3′ 端稳定性不强，所以我认为风险不高，但需要实验验证。</li>
 <li><b>A1-F 没有延长</b>：它位于 8–24，再往 5′ 延长会超出数据库里序列的数据范围（约 20% 序列在 8 位之前没有数据），评估不了，所以保持 17 nt，人基因组位点 2,329 个（291 个/展开序列）。如果要加 V1·V2，这是剩下的弱点。</li>
 </ul>
-<h2>五、局限</h2>
+<h2>五、A2-R 的 Tm 均衡</h2>
+<p>延长 A2-R（GC 约 78%）会把 Tm 抬到 69.6 °C，比池里其余的高 4–5 °C。改成不延长，而是把位点往 5′ 侧移（3′ 端左移）：起点 488–512、长度 17–23 nt 扫描 700 个组合，要求覆盖率达标、Tm 57–65 °C，再看人基因组命中。</p>
+{t6}
+<p>推荐用<b>单条 `TGCTGGCACGDARTTAGCC`（505–523，19 nt，Tm 63.8 °C，6 个展开序列）</b>：寡核苷酸数不变，Tm 落在池内范围，人基因组位点只有 2.8 个/展开序列（原来 231 个），线粒体 12S 里 883 位的那个命中也没有了；位点覆盖率从 97.6% / 98.5% 降到 95.0% / 93.7%（SILVA / GG）。想要覆盖率更高可以用 2 条（509–526，`GGCTGCTGGCACGKARTT` + `GGSTGCTGGCACGTAYTT`，Tm 64.5 / 63.0 °C，95.8% / 94.6%），代价是多 1 条寡核苷酸，整体准确率没有可见差别。</p>
+{t7}
+<ul>
+<li>Tm 范围从 56.5–69.6 °C 缩到 56.5–65.8 °C（最热的现在是 A4-R 和 A2-F，约 65.7–65.8 °C）；寡核苷酸数、展开数不变（4 个扩增子 10 条、56 个；5 个扩增子 14 条、86 个）。</li>
+<li>整体几乎不变：A2 扩增子覆盖率 SILVA 80% → 79%，GG 92% → 91%；属准确率（三种规则）90.2/90.4/91.3% → 90.6/90.7/91.3%，在误差范围内。</li>
+<li>人基因组（均衡后的 4 个扩增子）：≤2 个错配的位点 324 → 220，潜在产物 0 → 0；≤3 个错配的潜在产物 1 → 3（量级很小，没有逐个核查）。线粒体仍没有潜在产物。</li>
+<li>池内还剩一个自二聚体 A5-F 第 1 条（ΔG −9.0，3′ 端 −3.5）和 A1-F 的高人基因组命中，见第四节。</li>
+</ul>
+<h2>六、局限</h2>
 <ul>
 <li>hg19 不是最新版本，也缺少 rDNA 阵列等重复区域；人 18S/28S rRNA 没有单独检查，核 rDNA 可能比表中更多。</li>
 <li>“3′ 端 8 nt 完全匹配 + 总错配数”是粗略规则，没考虑错配位置、GC、二级结构，也没算热力学；位点数不等于会扩出。</li>

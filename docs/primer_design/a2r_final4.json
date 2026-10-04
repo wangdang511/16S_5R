@@ -1,0 +1,94 @@
+{
+ "A2-F": {
+  "orient": "F",
+  "start": 341,
+  "L": 16,
+  "prim": [
+   "ACTYCTACGGGWGGCAGCA"
+  ],
+  "ext": [
+   3
+  ]
+ },
+ "A2-R": {
+  "orient": "R",
+  "start": 505,
+  "L": 19,
+  "prim": [
+   "TGCTGGCACGDARTTAGCC"
+  ],
+  "ext": [
+   0
+  ]
+ },
+ "A3-F": {
+  "orient": "F",
+  "start": 558,
+  "L": 19,
+  "prim": [
+   "GGAWTYAYTGGGCGTAAAG",
+   "CGGRAWTYATTGGGTTTAAAG"
+  ],
+  "ext": [
+   0,
+   2
+  ]
+ },
+ "A3-R": {
+  "orient": "R",
+  "start": 785,
+  "L": 20,
+  "prim": [
+   "ACTACCRGGGTATCTAAKCC"
+  ],
+  "ext": [
+   0
+  ]
+ },
+ "A4-F": {
+  "orient": "F",
+  "start": 906,
+  "L": 22,
+  "prim": [
+   "RAAACTCAAAGGAATTGACGGR"
+  ],
+  "ext": [
+   0
+  ]
+ },
+ "A4-R": {
+  "orient": "R",
+  "start": 1177,
+  "L": 16,
+  "prim": [
+   "ACGTCRTCCCCACCTTCCY"
+  ],
+  "ext": [
+   3
+  ]
+ },
+ "A5-F": {
+  "orient": "F",
+  "start": 1226,
+  "L": 16,
+  "prim": [
+   "GCTRCACRCRTGCTACAAT",
+   "GCTACACACGTVMTACAAT"
+  ],
+  "ext": [
+   3,
+   3
+  ]
+ },
+ "A5-R": {
+  "orient": "R",
+  "start": 1492,
+  "L": 19,
+  "prim": [
+   "GGYWACCTTGTTACGACTT"
+  ],
+  "ext": [
+   0
+  ]
+ }
+}
