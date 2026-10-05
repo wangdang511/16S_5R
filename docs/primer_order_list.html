@@ -120,7 +120,7 @@ footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid va
 <li><b>没有实验验证</b>：覆盖率是按“最多 1 个错配、3′ 端 3 个碱基匹配”的序列规则算的，数据库是 Greengenes 13_8 和 SILVA 128。</li>
 <li><b>池里的热力学检查</b>：各寡核苷酸平均 Tm 54.8–65.8 °C（含各展开序列的范围是 50.6–67.6 °C）；最热的是 A2-F（65.7）和 A4-R（65.8），最冷的是 A1-F（54.8）；退火温度建议先做梯度（大致 52–60 °C）。池内所有寡核苷酸（含简并展开）两两检查，没有严重二聚体或发夹（A5-F.1 原来有一个临界自二聚体，已经处理，见下一条）。</li>
 <li><b>A5-F.1 已改</b>：原序列 <code>GCTRCACRCRTGCTACAAT</code> 的展开序列 <code>GCTGCACGCGTGCTACAAT</code> 含回文核心 GCACGCGTGC，自二聚体 ΔG −9.0 kcal/mol（3′ 端 −1.4）；现在改为 <code>GCKACACRCRTGCTACAAT</code>（第 4 位 R→K，去掉了这个展开序列）。位点覆盖率没有下降（SILVA / GG 88.3% / 93.7% → 90.2% / 94.1%），人基因组位点从 34 个降到 17 个。</li>
-<li><b>内联 UDP（每端 10 bp）+ 2×150 读长下，V6·V7（290 bp）和 V8·V9（288 bp）各缺 10 / 8 bp 测不通</b>，缺口在保守区，对属鉴定影响可以忽略，但需要合并读段的流程会丢掉这两个扩增子；缩短版（V6·V7 229 bp 等）没有这个问题，见 <code>primer_shorter_amplicons.html</code>。</li>
+<li><b>内联 UDP（每端 10 bp）+ 2×150 读长下，V6·V7（290 bp）和 V8·V9（288 bp）各缺 10 / 8 bp 测不通</b>，V6·V7 的缺口在保守间隔区，V8·V9 的缺口有一定变异（但只有 8 bp），对属鉴定影响可以忽略，但需要合并读段的流程会丢掉这两个扩增子；缩短版（V6·V7 229 bp 等）没有这个问题，见 <code>primer_shorter_amplicons.html</code>。</li>
 <li><b>扩增子长度不同</b>：V3 只有 186 bp，其余 249–290 bp，同一管里短的通常更容易扩出。混合比例没有校正这个偏倚，需要用已知组成的样本（标准菌群）实测后调整各位点的量。</li>
 <li><b>覆盖率</b>：5 个扩增子全部扩出的序列，SILVA 约 56%，Greengenes 约 68%；V1·V2 的位点覆盖是最弱的一环。</li>
 <li><b>人基因组</b>：A1-F（17 nt）在人基因组里有很多近似位点（≤2 个错配 2,329 个），在 FFPE 等人 DNA 多的样本里会浪费读段；其余引物已延长或移位，4 个扩增子的部分在 ≤2 个错配下没有潜在产物，详见 <code>primer_offtarget.html</code>。</li>
