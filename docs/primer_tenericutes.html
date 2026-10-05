@@ -1,0 +1,142 @@
+<title>支原体各位点覆盖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (~70ch) with full-bleed figures; a sticky step index on wide screens.
+   Color: lab-paper neutrals tinted toward the cobalt accent; nucleotide colors (A/C/G/T, chromatogram convention) as the subject detail. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6675; --line:#d7dde5;
+  --accent:#2747c8; --accent-soft:#e3e8fb;
+  --A:#1f8a4c; --C:#2f62d6; --G:#b07800; --T:#c8372d;
+  --ok:#1f8a4c; --warn:#b07800; --bad:#c8372d;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}.toc{display:none}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:13px;line-height:1.5}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 10px;border-left:2px solid var(--line)}
+.toc a:hover,.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent);outline:none}
+.toc .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+main{min-width:0}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(30px,5vw,44px);line-height:1.2;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--serif);font-weight:800;font-size:26px;line-height:1.3;margin:64px 0 8px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-size:18px;font-weight:700;margin:32px 0 6px}
+p,li{max-width:68ch}
+p{margin:10px 0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+.seq{font-family:var(--mono);letter-spacing:.04em;font-size:13px;white-space:nowrap}
+.sA{color:var(--A)}.sC{color:var(--C)}.sG{color:var(--G)}.sT{color:var(--T)}.sX{color:var(--accent);font-weight:600}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0;overflow-x:auto}
+.figure figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:none}
+svg text{font-family:var(--sans)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.fact{border-top:2px solid var(--ink);padding-top:8px}
+.fact b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.n{text-align:right;font-family:var(--mono);font-size:13px}
+.tbl{overflow-x:auto;margin:14px 0}
+
+/* pipeline steps */
+.steps{list-style:none;padding:0;margin:20px 0;display:grid;gap:0;counter-reset:st}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;position:relative;padding-bottom:26px}
+.step:before{counter-increment:st;content:counter(st);width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--mono);z-index:1}
+.step:after{content:"";position:absolute;left:17px;top:38px;bottom:0;width:2px;background:var(--line)}
+.step:last-child:after{display:none}
+.step h3{margin:4px 0 2px}
+.step .file{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.step .io{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface);white-space:nowrap}
+.pill.k{border-color:var(--accent);color:var(--accent)}
+
+.formula{font-family:var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;font-size:14px;line-height:1.9}
+.note{border-left:3px solid var(--warn);padding:6px 14px;margin:14px 0;background:var(--surface);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p,.card li{font-size:14.5px}
+.card ul{padding-left:18px;margin:6px 0}
+.pri{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:4px;margin-right:6px;vertical-align:2px}
+.p1{background:var(--bad);color:var(--surface)}.p2{background:var(--warn);color:var(--surface)}.p3{background:var(--muted);color:var(--surface)}
+.bugs td:first-child{white-space:nowrap}
+.heat td.h{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink)}
+footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:no-preference){.toc a{transition:color .15s,border-color .15s}}
+</style>
+<div class="wrap"><main style="grid-column:1/-1;width:100%;max-width:980px;margin-inline:auto">
+<header>
+  <div class="eyebrow">16S_5R · 引物设计</div>
+  <h1>支原体（Tenericutes）在各个引物位点的覆盖</h1>
+  <p class="lede">当前设计对支原体已经比 5R 好得多（5R 有两个位点几乎完全匹配不上），但仍有 4–5 个位点覆盖率偏低，最弱的是 V3 的反向引物（A2-R）和 V6·V7 缩短版的正向引物（A4-F）。每个弱位点加 1 条补充寡核苷酸，能把支原体覆盖率提到 89–98%。这是序列层面的模拟，没有实验验证。</p>
+</header>
+
+<h2>一、方法</h2>
+<ul>
+<li>用 Greengenes 13_8 里全部 Tenericutes 序列（202 条）和 SILVA 128 里全部 Tenericutes 序列（355 条，门由朴素贝叶斯按 Greengenes 推断，不是 SILVA 自己的分类），每个位点只算该位点有数据的序列。覆盖按“最多 1 个错配、3′ 端 3 个碱基匹配”算。</li>
+<li>Greengenes 的支原体几乎都是 Mycoplasma（92 条）、Candidatus Phytoplasma（47）、Asteroleplasma（19）、Acholeplasma（19）、Candidatus Hepatoplasma（8）、Ureaplasma（7）。这个门里序列数少，百分比的误差大。</li>
+</ul>
+
+<h2>二、当前设计各位点的支原体覆盖</h2>
+<div class="tbl"><table><thead><tr><th>位点（当前 V6·V7 缩短版）</th><th>寡核苷酸数</th><th>Greengenes 覆盖（序列数）</th><th>SILVA 覆盖（序列数）</th></tr></thead><tbody><tr><td class="">A1-F</td><td class="n">1</td><td class="">99%（91）</td><td class="">96%（125）</td></tr><tr><td class="">A1-R</td><td class="n">3</td><td class="">90%（196）</td><td class="">79%（349）</td></tr><tr><td class="">A2-F</td><td class="n">1</td><td class="">92%（199）</td><td class="">93%（350）</td></tr><tr><td class="">A2-R</td><td class="n">1</td><td class="">73%（198）</td><td class="">86%（354）</td></tr><tr><td class="">A3-F</td><td class="n">2</td><td class="">90%（198）</td><td class="">94%（353）</td></tr><tr><td class="">A3-R</td><td class="n">1</td><td class="">93%（199）</td><td class="">95%（354）</td></tr><tr><td class="">A4-F</td><td class="n">2</td><td class="">74%（198）</td><td class="">88%（351）</td></tr><tr><td class="">A4-F(原 906–927)</td><td class="n">1</td><td class="">96%（201）</td><td class="">96%（349）</td></tr><tr><td class="">A4-R</td><td class="n">1</td><td class="">89%（193）</td><td class="">88%（355）</td></tr><tr><td class="">A4-R(原)</td><td class="n">1</td><td class="">73%（193）</td><td class="">80%（355）</td></tr><tr><td class="">A5-F</td><td class="n">2</td><td class="">85%（202）</td><td class="">77%（353）</td></tr><tr><td class="">A5-R</td><td class="n">1</td><td class="">98%（176）</td><td class="">92%（93）</td></tr></tbody></table></div>
+<ul>
+<li><b>最弱的位点</b>：A2-R（Greengenes 73%，SILVA 86%）、A4-F 缩短版（74% / 88%）、A5-F（85% / 77%）、A1-R（90% / 79%）、A4-R（89% / 88%）。</li>
+<li>原来的 V6·V7 正向引物（906–927）对支原体几乎全覆盖（96% / 96%），缩短版 967–985 这个新位点掉到 74% / 88%，所以你重视支原体时，保留原来的 906–927 是对的；原来的 A4-R 版本也很弱（73% / 80%），改了一个碱基后提高到 89% / 88%。</li>
+<li>A1-F、A5-R 在 SILVA 里有数据的序列很少（125、93 条），这两个数字不稳。</li>
+</ul>
+
+<h2>三、扩增子级别（两端都匹配）</h2>
+<div class="tbl"><table><thead><tr><th>扩增子</th><th>Greengenes（两端都匹配）</th><th>SILVA（两端都匹配）</th></tr></thead><tbody><tr><td class="">V1·V2</td><td class="n">87%</td><td class="n">78%</td></tr><tr><td class="">V3</td><td class="n">72%</td><td class="n">84%</td></tr><tr><td class="">V4</td><td class="n">83%</td><td class="n">89%</td></tr><tr><td class="">V6·V7（缩短，967）</td><td class="n">67%</td><td class="n">80%</td></tr><tr><td class="">V6·V7（原，906）</td><td class="n">85%</td><td class="n">84%</td></tr><tr><td class="">V8·V9</td><td class="n">83%</td><td class="n">72%</td></tr><tr><td class="">5R R1</td><td class="n">40%</td><td class="n">48%</td></tr><tr><td class="">5R R2</td><td class="n">80%</td><td class="n">88%</td></tr><tr><td class="">5R R3</td><td class="n">64%</td><td class="n">78%</td></tr><tr><td class="">5R R4</td><td class="n">6%</td><td class="n">19%</td></tr><tr><td class="">5R R5</td><td class="n">2%</td><td class="n">11%</td></tr></tbody></table></div>
+<ul>
+<li>当前设计的 5 个扩增子里，支原体 Greengenes 覆盖率 67%（V6·V7 缩短版）–87%（V1·V2）；用原来的 906 正向引物，V6·V7 提到 85% / 84%。</li>
+<li>5 个扩增子里，Greengenes 的支原体有 77% 至少能扩出 3 个扩增子，99% 至少扩出 1 个；SILVA 分别是 72% 和 98%。</li>
+<li>5R 原引物（下表）对支原体的 R4（约 944–1104）和 R5（约 1175–1391）扩增子基本扩不出来（Greengenes 6.5% 和 1.6%），整体覆盖弱得多：</li>
+</ul>
+<div class="tbl"><table><thead><tr><th>5R 原引物位点</th><th>寡核苷酸数</th><th>Greengenes 覆盖</th><th>SILVA 覆盖</th></tr></thead><tbody><tr><td class="">5R R1-F</td><td class="n">1</td><td class="n">67%</td><td class="n">66%</td></tr><tr><td class="">5R R1-R</td><td class="n">1</td><td class="n">70%</td><td class="n">81%</td></tr><tr><td class="">5R R2-F</td><td class="n">1</td><td class="n">89%</td><td class="n">91%</td></tr><tr><td class="">5R R2-R</td><td class="n">1</td><td class="n">85%</td><td class="n">94%</td></tr><tr><td class="">5R R3-F</td><td class="n">1</td><td class="n">68%</td><td class="n">80%</td></tr><tr><td class="">5R R3-R</td><td class="n">1</td><td class="n">95%</td><td class="n">95%</td></tr><tr><td class="">5R R4-F</td><td class="n">1</td><td class="n">19%</td><td class="n">28%</td></tr><tr><td class="">5R R4-R</td><td class="n">1</td><td class="n">30%</td><td class="n">39%</td></tr><tr><td class="">5R R5-F</td><td class="n">1</td><td class="n">66%</td><td class="n">73%</td></tr><tr><td class="">5R R5-R</td><td class="n">1</td><td class="n">2%</td><td class="n">11%</td></tr></tbody></table></div>
+
+<h2>四、没有被覆盖的是哪些属</h2>
+<div class="tbl"><table><thead><tr><th>位点</th><th>Greengenes 里的支原体属（Mycoplasma）序列数</th><th>被覆盖</th></tr></thead><tbody><tr><td class="">A2-R</td><td class="n">88</td><td class="">65（74%）</td></tr><tr><td class="">A4-F</td><td class="n">89</td><td class="">73（82%）</td></tr><tr><td class="">A5-F</td><td class="n">92</td><td class="">74（80%）</td></tr><tr><td class="">A1-R</td><td class="n">91</td><td class="">83（91%）</td></tr><tr><td class="">A4-R</td><td class="n">85</td><td class="">79（93%）</td></tr><tr><td class="">A2-F</td><td class="n">91</td><td class="">79（87%）</td></tr><tr><td class="">A4-F(原 906–927)</td><td class="n">92</td><td class="">87（95%）</td></tr></tbody></table></div>
+<ul>
+<li>各位点没被覆盖的主要是 Mycoplasma 本身（A2-R 漏 23/88，A4-F 漏 16/89，A5-F 漏 18/92），其次是 Candidatus Phytoplasma（植物病原，A4-F 漏 21/46）和 Asteroleplasma（A2-R 漏 19/19，A4-R 漏 12/19）。</li>
+<li>Ureaplasma 在 A5-F 全漏（7/7）。Acholeplasma 基本都能覆盖。</li>
+<li>也就是说，如果你关心的是人体或细胞培养污染里的支原体（Mycoplasma、Ureaplasma），Asteroleplasma 和植物病原的 Phytoplasma 漏掉影响较小，但 Mycoplasma 本身仍漏了 7–26%。</li>
+</ul>
+
+<h2>五、补一条针对性的寡核苷酸能提高多少</h2>
+<p>对每个弱位点，只拿“当前引物没覆盖的支原体序列”再设计一条简并引物（≤8 个展开序列，≤3 个简并位点），加到该位点：</p>
+<div class="tbl"><table><thead><tr><th>位点</th><th>补充寡核苷酸 5′→3′</th><th>展开数</th><th>Tm °C</th><th>Greengenes 覆盖</th><th>SILVA 覆盖</th></tr></thead><tbody><tr><td class="">A2-R</td><td class="seq">TGCTGGCACATAGTTWGYY</td><td class="n">8</td><td class="n">59.9</td><td class="n">73% → 98%</td><td class="n">86% → 98%</td></tr><tr><td class="">A4-F</td><td class="seq">RTACMCGAARAACCTTACC</td><td class="n">8</td><td class="n">56.1</td><td class="n">74% → 89%</td><td class="n">88% → 94%</td></tr><tr><td class="">A5-F</td><td class="seq">RCARRCGTGCTACAAT</td><td class="n">8</td><td class="n">54.9</td><td class="n">85% → 98%</td><td class="n">77% → 98%</td></tr><tr><td class="">A1-R</td><td class="seq">TACCCYACCAACTARYT</td><td class="n">8</td><td class="n">53.1</td><td class="n">90% → 94%</td><td class="n">79% → 91%</td></tr><tr><td class="">A4-R</td><td class="seq">ACGTCATCCTYWCCTTCMT</td><td class="n">8</td><td class="n">59.1</td><td class="n">89% → 95%</td><td class="n">88% → 92%</td></tr><tr><td class="">A2-F</td><td class="seq">CCTACGGGAAGCASMA</td><td class="n">4</td><td class="n">57.8</td><td class="n">92% → 98%</td><td class="n">93% → 98%</td></tr></tbody></table></div>
+<div class="tbl"><table><thead><tr><th>扩增子</th><th>Greengenes</th><th>SILVA</th></tr></thead><tbody><tr><td class="">V1·V2</td><td class="n">87% → 90%</td><td class="n">78% → 85%</td></tr><tr><td class="">V3</td><td class="n">72% → 96%</td><td class="n">84% → 96%</td></tr><tr><td class="">V4</td><td class="n">83% → 83%</td><td class="n">89% → 89%</td></tr><tr><td class="">V6·V7（缩短）</td><td class="n">67% → 85%</td><td class="n">80% → 88%</td></tr><tr><td class="">V8·V9</td><td class="n">83% → 96%</td><td class="n">72% → 89%</td></tr></tbody></table></div>
+<ul>
+<li>各位点的支原体覆盖率提高到 89–98%，V3、V8·V9 的扩增子覆盖提高最多（V3：Greengenes 72% → 96%，SILVA 84% → 96%；V8·V9：83% → 96%，72% → 89%）。</li>
+<li>代价：每个弱位点 +1 条寡核苷酸、+8 个展开序列（A2-F 补 4 个）；补充引物的 Tm 偏低（53–60 °C），加的是不同的序列，所以会改变混合比例。<b>这些补充寡核苷酸我还没有检查二聚体、人基因组脱靶和对其他菌门的影响</b>，只是对支原体序列的覆盖模拟，不能直接下单。</li>
+<li>V4（A3-F / A3-R）已经比较好（90–95%），不需要补。</li>
+</ul>
+
+<h2>六、限制</h2>
+<ul>
+<li>覆盖率是序列匹配规则的结果，不是实际 PCR 效率；序列数少，数值有几个百分点的误差。</li>
+<li>Greengenes 的支原体里 Phytoplasma 占比较高（47/202），可能和你的样本不一致；如果你只关心 Mycoplasma 和 Ureaplasma，需要单独看这两个属（表 4）。</li>
+<li>只看了支原体，没有评估补充引物对其他菌门的影响。</li>
+</ul>
+<footer>脚本：<code>python_5R/explore/ten1.py</code>、<code>ten2.py</code>、<code>ten3.py</code>；数据：<code>docs/primer_design/ten_*.csv</code>。</footer>
+</main></div>
