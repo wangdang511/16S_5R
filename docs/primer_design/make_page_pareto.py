@@ -1,7 +1,7 @@
 """生成 docs/primer_pareto.html"""
 import re, html, pickle
 import numpy as np, pandas as pd
-HERE = __file__.rsplit("/", 1)[0]; DOCS = HERE.rsplit("/", 1)[0]
+import sys; HERE = __file__.rsplit("/", 1)[0]; sys.path.insert(0, HERE); from naming import rename_text, new_order, REGION; DOCS = HERE.rsplit("/", 1)[0]
 old = open(DOCS + "/5R_SMURF_pipeline.html", encoding="utf-8").read()
 head = re.sub(r"<title>.*?</title>", "<title>引物精简帕累托前沿</title>", old[:old.index("</style>") + 8], 1)
 NUMRE = re.compile(r"^[\d.%/ –→+-]+$")
@@ -95,5 +95,7 @@ body = f"""
 <footer>脚本：<code>python_5R/explore/par1.py</code>—<code>par6.py</code>；数据：<code>docs/primer_design/par_*.csv</code>。</footer>
 </main></div>
 """
+body = rename_text(body)
+if "@@MAP@@" in body: body = body.replace("@@MAP@@", MAPHTML)
 open(DOCS + "/primer_pareto.html", "w", encoding="utf-8").write(head + body)
 print("ok")

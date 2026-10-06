@@ -1,7 +1,7 @@
 """生成 docs/primer_order_list_levels.html"""
 import re, html
 import numpy as np, pandas as pd
-HERE = __file__.rsplit("/", 1)[0]; DOCS = HERE.rsplit("/", 1)[0]
+import sys; HERE = __file__.rsplit("/", 1)[0]; sys.path.insert(0, HERE); from naming import rename_text, new_order, REGION; DOCS = HERE.rsplit("/", 1)[0]
 old = open(DOCS + "/5R_SMURF_pipeline.html", encoding="utf-8").read()
 head = re.sub(r"<title>.*?</title>", "<title>12、16、24 条引物订购清单</title>", old[:old.index("</style>") + 8], 1)
 NUMRE = re.compile(r"^[\d.%/ –→+-]+$")
@@ -27,8 +27,9 @@ for nmx in names:
     rows.append(r)
 t3 = tbl(rows, ["扩增子（覆盖：GG / SILVA 主要门平均；支原体 GG / SILVA）", "24 条", "16 条", "12 条 + V1_f", "12 条"])
 def f(v): return "—" if pd.isna(v) else f"{v:.2f}"
-t4 = tbl([[r.order, "补充" if r.is_sup else "", r.seq, r.nt, r.pos, f"{r.Tm}（{r.Tm_lo}–{r.Tm_hi}）", int(r.expansions), f"{r.human_per_exp:g}", f(r.uL_12), f(r.uL_12v), f(r.uL_16), f(r.uL_24)] for _, r in W.iterrows()],
+t4 = tbl([["@@N:" + r.order.replace("-", "~") + "@@", "补充" if r.is_sup else "", r.seq, r.nt, r.pos, f"{r.Tm}（{r.Tm_lo}–{r.Tm_hi}）", int(r.expansions), f"{r.human_per_exp:g}", f(r.uL_12), f(r.uL_12v), f(r.uL_16), f(r.uL_24)] for _, r in W.iterrows()],
          ["订购名称", "类型", "序列 5′→3′（IUPAC）", "nt", "E. coli 位置", "Tm °C（展开范围）", "展开数", "人基因组位点 / 展开序列（≤2 错配）", "12 条池 µL", "12 条 + V1_f 池 µL", "16 条池 µL", "24 条池 µL"], seqcol=2)
+MAPHTML = "<p>订购名称按 6 个扩增子编号：16S-A1（V1·V2）、A2（V3）、A3（V4）、A4（V5）、A5（V6·V7）、A6（V8·V9）；V5 扩增子的正向引物和 V4 共用（16S-A3-F），所以 A4 只有反向引物（16S-A4-R）。末尾 s = 支原体补充，.SNAP = 借鉴 Swift SNAP 的引物。分析里用过的旧名在下表：</p>" + tbl([[re.sub(r"^SMURF5-", "", r.order), new_order(r.order), r.slot] for _, r in W.iterrows()], ["分析里用过的旧名（页面和早期文件里）", "订购名称（Excel、本页）", "旧位点名"])
 body = f"""
 <div class="wrap"><main style="grid-column:1/-1;width:1120px;max-width:100%;margin-inline:auto">
 <header>
@@ -73,7 +74,10 @@ body = f"""
 <li>池内所有寡核苷酸（含展开）两两检查：四个池都没有严重二聚体或发夹。</li>
 </ul>
 
-<h2>五、对比实验的建议</h2>
+<h2>五、名称对照</h2>
+@@MAP@@
+
+<h2>六、对比实验的建议</h2>
 <ul>
 <li>用同一批样本（已知组成的标准菌群，最好含支原体和浮霉菌；加上你关心的真实样本）、同一份 DNA、同一套循环条件，分别用 12、16、24 条池扩增，每个池至少 3 个重复；测序读段数抽平后比较。</li>
 <li>比较的指标：每个扩增子的读段占比（看 V5、V3 的读出比例是否够）、标准菌群各物种的检出情况和相对丰度偏差、支原体和浮霉菌是否掉线、通过引物去除的读段比例、人 DNA 污染样本里的无效读段比例。</li>
@@ -81,7 +85,7 @@ body = f"""
 <li>注意：16 条池和“12 条 + V1_f”池用 V1_f，12、24 条池用 A1-F。比较引物条数的效果时，用“12 条 + V1_f”对“16 条”，或“12 条”对“24 条”，这样 V1·V2 的引物选择是一致的；看 V1_f 本身的效果时用“12 条”对“12 条 + V1_f”。</li>
 </ul>
 
-<h2>六、限制</h2>
+<h2>七、限制</h2>
 <ul>
 <li>覆盖率按“最多 1 个错配、3′ 端 3 个碱基匹配”的序列规则算，不是实际 PCR 效率；数据库是 Greengenes 13_8 和 SILVA 128；没有实验验证。</li>
 <li>区间只反映样本序列的抽样波动，不包含引物选择本身的不确定性；综合得分 J 是我定的三项等权平均，你按自己的侧重（比如只看支原体）可能选出别的点。</li>
@@ -90,5 +94,8 @@ body = f"""
 <footer>脚本：<code>python_5R/explore/lvl1.py</code>、<code>lvl2.py</code>、<code>par*.py</code>；数据：<code>docs/primer_design/order_list_levels.csv</code>、<code>lvl_*.csv</code>。</footer>
 </main></div>
 """
+body = rename_text(body)
+body = re.sub(r"@@N:(.*?)@@", lambda m: new_order(m.group(1).replace("~", "-")), body)
+if "@@MAP@@" in body: body = body.replace("@@MAP@@", MAPHTML)
 open(DOCS + "/primer_order_list_levels.html", "w", encoding="utf-8").write(head + body)
 print("ok")

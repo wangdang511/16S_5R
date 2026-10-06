@@ -1,7 +1,7 @@
 """生成 docs/primer_order_list_full_v5.html"""
 import re, html
 import pandas as pd
-HERE = __file__.rsplit("/", 1)[0]; DOCS = HERE.rsplit("/", 1)[0]
+import sys; HERE = __file__.rsplit("/", 1)[0]; sys.path.insert(0, HERE); from naming import rename_text, new_order, REGION; DOCS = HERE.rsplit("/", 1)[0]
 old = open(DOCS + "/5R_SMURF_pipeline.html", encoding="utf-8").read()
 head = re.sub(r"<title>.*?</title>", "<title>完整引物订购清单（V5 版）</title>", old[:old.index("</style>") + 8], 1)
 NUMRE = re.compile(r"^[\d.%/ –→+-]+$")
@@ -13,9 +13,9 @@ core = D[D.group != "备选"].copy(); alt = D[D.group == "备选"]
 amap = {"V5-R.2": "SMURF5-V5-R.2", "A4-F.2": "SMURF5-A4-F.2", "A1-R.4(补)": "SMURF5-A1-R.4（补充）", "A4-R.2(补)": "SMURF5-A4-R.2（补充）", "A1-R.3": "SMURF5-A1-R.3", "A2-F.2(补)": "SMURF5-A2-F.2（补充）", "A5-F.2": "SMURF5-A5-F.2", "A1-R.2": "SMURF5-A1-R.2", "A3-F.2": "SMURF5-A3-F.2", "A4-F.3(补)": "SMURF5-A4-F.3（补充）", "A5-F.3(补)": "SMURF5-A5-F.3（补充）"}
 step = {amap[r.removed]: int(r.step) for _, r in OR.iterrows() if r.removed in amap}
 fm = lambda v: "—" if pd.isna(v) else f"{v:.2f}"
-t1 = tbl([[r.order, r.recommend, r.region, r.seq, r.nt, r.pos, f"{r.Tm}（{r.Tm_lo}–{r.Tm_hi}）", int(r.expansions), f"{r.human_per_exp:g}", step.get(r.order, "保留"), fm(r.uL_with_sup), fm(r.uL_no_sup)] for _, r in core.iterrows()],
+t1 = tbl([["@@N:" + r.order.replace("-", "~") + "@@", r.recommend, r.region, r.seq, r.nt, r.pos, f"{r.Tm}（{r.Tm_lo}–{r.Tm_hi}）", int(r.expansions), f"{r.human_per_exp:g}", step.get(r.order, "保留"), fm(r.uL_with_sup), fm(r.uL_no_sup)] for _, r in core.iterrows()],
          ["订购名称", "建议", "区域", "序列 5′→3′（IUPAC）", "nt", "E. coli 位置", "Tm °C（展开范围）", "展开数", "人基因组位点 / 展开序列", "精简顺序（1 = 最先可删）", "µL 母液（含补充）", "µL 母液（不含补充）"], seqcol=3)
-t2 = tbl([[r.order, r.recommend, r.seq, r.nt, r.pos, f"{r.Tm}（{r.Tm_lo}–{r.Tm_hi}）", int(r.expansions), f"{r.human_per_exp:g}"] for _, r in alt.iterrows()], ["订购名称（备选）", "用途", "序列 5′→3′", "nt", "位置", "Tm °C", "展开数", "人基因组位点 / 展开序列"], seqcol=2)
+t2 = tbl([["@@N:" + r.order.replace("-", "~") + "@@", r.recommend, r.seq, r.nt, r.pos, f"{r.Tm}（{r.Tm_lo}–{r.Tm_hi}）", int(r.expansions), f"{r.human_per_exp:g}"] for _, r in alt.iterrows()], ["订购名称（备选）", "用途", "序列 5′→3′", "nt", "位置", "Tm °C", "展开数", "人基因组位点 / 展开序列"], seqcol=2)
 tup = lambda s: tuple(float(x) for x in re.findall(r"[\d.]+", s)); pc = lambda x: f"{x * 100:.0f}%"
 t3 = tbl([[r.pair, f"{pc(tup(r.GG)[0])} / {pc(tup(r.GG)[1])}", f"{pc(tup(r.SILVA)[0])} / {pc(tup(r.SILVA)[1])}", f"{pc(r.Ten_GG)} / {pc(r.Ten_SILVA)}"] for _, r in PCV.iterrows()], ["引物对（产物）", "GG：平均 / 最差门", "SILVA：平均 / 最差门", "支原体 GG / SILVA"])
 t4 = tbl([[r.design, f"{r.ideal * 100:.2f}%", f"{r.abs60 * 100:.1f} / {r.abs300 * 100:.1f} / {r['frac0.8'] * 100:.1f}%"] for _, r in DE.iterrows()], ["方案（留出集 2,196 条）", "理想属准确率", "属准确率（三种“扩增失败也算”规则）"])
@@ -65,5 +65,8 @@ body = f"""
 <footer>脚本：<code>python_5R/explore/v5_*.py</code>、<code>par*.py</code>；数据：<code>docs/primer_design/order_list_full_v5.csv</code>、<code>par_*.csv</code>。</footer>
 </main></div>
 """
+body = rename_text(body)
+body = re.sub(r"@@N:(.*?)@@", lambda m: new_order(m.group(1).replace("~", "-")), body)
+if "@@MAP@@" in body: body = body.replace("@@MAP@@", MAPHTML)
 open(DOCS + "/primer_order_list_full_v5.html", "w", encoding="utf-8").write(head + body)
 print("ok")
