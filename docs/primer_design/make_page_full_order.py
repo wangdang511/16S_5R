@@ -27,9 +27,10 @@ body = f"""
 <header>
   <div class="eyebrow">16S_5R · 引物设计</div>
   <h1>完整引物订购清单（推荐版 + 备选）</h1>
-  <p class="lede">推荐 18 条寡核苷酸（14 条核心 + 4 条支原体补充），展开序列 114 个，覆盖 V1·V2、V3、V4、V6·V7、V8·V9 五个区域。其中 3 条补充“建议”订，1 条“可选”。V3 推荐长版（338–535 bp 198），V6·V7 推荐保留原来的 906 正向引物（290 bp）。这是计算机设计，没有实验验证。</p>
+  <p class="lede">推荐 18 条寡核苷酸（14 条核心 + 4 条支原体补充），展开序列 118 个，覆盖 V1·V2、V3、V4、V6·V7、V8·V9 五个区域。其中 3 条补充“建议”订，1 条“可选”。V3 推荐长版（338–535 bp 198），V6·V7 推荐保留原来的 906 正向引物（290 bp）。这是计算机设计，没有实验验证。</p>
 </header>
 
+<p style="border:1px solid var(--warn);background:var(--surface);padding:10px 14px;border-radius:8px"><b>更正（相对上一版）：</b>V3 正向引物 A2-F.1 由 <code>ACTYCTACGGGWGGCAGCA</code> 改为 <code>ACWYCTACGGGWGGCAGCA</code>（第 340 位 T→W）。上一版在 5′ 端延长了 3 个碱基（为了降低人基因组脱靶），但新增的碱基让浮霉菌门（Planctomycetes）在这个位点几乎全部不匹配（Greengenes 3%，SILVA 28%）；我之前只看了各主要门的平均覆盖率，没有看最差的门。改后浮霉菌门恢复到 79–93%，V3 扩增子覆盖 Greengenes 91% → 95%，5 个扩增子全部扩出 SILVA 57.7% → 58.4%、Greengenes 70.2% → 72.1%；展开数 114 → 118，A2-F.1 的人基因组命中仍是 8.2 个/展开序列，没有严重二聚体。</p>
 <h2>一、推荐订购清单</h2>
 {t1}
 <ul>

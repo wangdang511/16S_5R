@@ -1,0 +1,154 @@
+<title>与 Swift SNAP 的比较</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (~70ch) with full-bleed figures; a sticky step index on wide screens.
+   Color: lab-paper neutrals tinted toward the cobalt accent; nucleotide colors (A/C/G/T, chromatogram convention) as the subject detail. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6675; --line:#d7dde5;
+  --accent:#2747c8; --accent-soft:#e3e8fb;
+  --A:#1f8a4c; --C:#2f62d6; --G:#b07800; --T:#c8372d;
+  --ok:#1f8a4c; --warn:#b07800; --bad:#c8372d;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}.toc{display:none}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:13px;line-height:1.5}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 10px;border-left:2px solid var(--line)}
+.toc a:hover,.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent);outline:none}
+.toc .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+main{min-width:0}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(30px,5vw,44px);line-height:1.2;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--serif);font-weight:800;font-size:26px;line-height:1.3;margin:64px 0 8px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-size:18px;font-weight:700;margin:32px 0 6px}
+p,li{max-width:68ch}
+p{margin:10px 0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+.seq{font-family:var(--mono);letter-spacing:.04em;font-size:13px;white-space:nowrap}
+.sA{color:var(--A)}.sC{color:var(--C)}.sG{color:var(--G)}.sT{color:var(--T)}.sX{color:var(--accent);font-weight:600}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0;overflow-x:auto}
+.figure figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:none}
+svg text{font-family:var(--sans)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.fact{border-top:2px solid var(--ink);padding-top:8px}
+.fact b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.n{text-align:right;font-family:var(--mono);font-size:13px}
+.tbl{overflow-x:auto;margin:14px 0}
+
+/* pipeline steps */
+.steps{list-style:none;padding:0;margin:20px 0;display:grid;gap:0;counter-reset:st}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;position:relative;padding-bottom:26px}
+.step:before{counter-increment:st;content:counter(st);width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--mono);z-index:1}
+.step:after{content:"";position:absolute;left:17px;top:38px;bottom:0;width:2px;background:var(--line)}
+.step:last-child:after{display:none}
+.step h3{margin:4px 0 2px}
+.step .file{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.step .io{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface);white-space:nowrap}
+.pill.k{border-color:var(--accent);color:var(--accent)}
+
+.formula{font-family:var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;font-size:14px;line-height:1.9}
+.note{border-left:3px solid var(--warn);padding:6px 14px;margin:14px 0;background:var(--surface);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p,.card li{font-size:14.5px}
+.card ul{padding-left:18px;margin:6px 0}
+.pri{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:4px;margin-right:6px;vertical-align:2px}
+.p1{background:var(--bad);color:var(--surface)}.p2{background:var(--warn);color:var(--surface)}.p3{background:var(--muted);color:var(--surface)}
+.bugs td:first-child{white-space:nowrap}
+.heat td.h{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink)}
+footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:no-preference){.toc a{transition:color .15s,border-color .15s}}
+</style>
+<div class="wrap"><main style="grid-column:1/-1;width:1040px;max-width:100%;margin-inline:auto">
+<header>
+  <div class="eyebrow">16S_5R · 方案比较</div>
+  <h1>5R、我们的 5 扩增子方案、Swift 16S SNAP 的引物位置和优缺点</h1>
+  <p class="lede">三个方案的引物位置很不一样：5R 的引物集中在 V2、V3、V5、V6、V8 附近，缺 V1、V4、V7、V9；Swift SNAP 用 11 组引物（23 条寡核苷酸），读段窗口覆盖 V1 到 V9（V2 中段和 V8 前半漏掉）；我们的方案 10 个位点（18 条寡核苷酸，118 个展开序列），覆盖 V1、V2、V3、V4、V6、V7、V8、V9，缺 V5。在引物对序列的匹配上，我们的方案最好、SNAP 居中、5R 最差；SNAP 的优点是区域覆盖面最广、引物简单（展开序列只有 34 个）、有现成的商品化流程，主要短板是有几个引物（V2_r、V4_r、V3_f、V7_f、V6_f）对一些菌门匹配很差。这些都是序列层面的计算比较，没有实验验证。</p>
+</header>
+
+<h2>一、引物位置（E. coli 16S 编号）</h2>
+<svg viewBox="0 0 980 270" width="100%" role="img" aria-label="三种方案的引物位置和读段窗口" style="max-width:980px"><rect x="100.3" y="14" width="17.5" height="14" fill="#c8a24a" opacity="0.35"/><text x="109.0" y="11" font-size="9" text-anchor="middle" fill="currentColor">V1</text><rect x="140.0" y="14" width="61.3" height="14" fill="#c8a24a" opacity="0.35"/><text x="170.6" y="11" font-size="9" text-anchor="middle" fill="currentColor">V2</text><rect x="312.7" y="14" width="37.4" height="14" fill="#c8a24a" opacity="0.35"/><text x="331.4" y="11" font-size="9" text-anchor="middle" fill="currentColor">V3</text><rect x="396.2" y="14" width="61.9" height="14" fill="#c8a24a" opacity="0.35"/><text x="427.1" y="11" font-size="9" text-anchor="middle" fill="currentColor">V4</text><rect x="539.8" y="14" width="33.3" height="14" fill="#c8a24a" opacity="0.35"/><text x="556.4" y="11" font-size="9" text-anchor="middle" fill="currentColor">V5</text><rect x="635.5" y="14" width="33.3" height="14" fill="#c8a24a" opacity="0.35"/><text x="652.1" y="11" font-size="9" text-anchor="middle" fill="currentColor">V6</text><rect x="711.9" y="14" width="32.7" height="14" fill="#c8a24a" opacity="0.35"/><text x="728.3" y="11" font-size="9" text-anchor="middle" fill="currentColor">V7</text><rect x="785.5" y="14" width="29.8" height="14" fill="#c8a24a" opacity="0.35"/><text x="800.4" y="11" font-size="9" text-anchor="middle" fill="currentColor">V8</text><rect x="897.5" y="14" width="17.5" height="14" fill="#c8a24a" opacity="0.35"/><text x="906.3" y="11" font-size="9" text-anchor="middle" fill="currentColor">V9</text><line x1="60.6" y1="30" x2="960.0" y2="30" stroke="currentColor" opacity="0.4"/><text x="4" y="58" font-size="11" fill="currentColor">Swift SNAP</text><rect x="76.3" y="66" width="75.3" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="201.2" y="66" width="143.0" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="371.7" y="66" width="217.1" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="635.5" y="66" width="150.6" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="795.4" y="66" width="134.8" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="65.3" y="52" width="10.5" height="9" fill="#2a7f62"/><rect x="277.1" y="78" width="11.1" height="9" fill="#c0562d"/><rect x="259.0" y="52" width="9.3" height="9" fill="#2a7f62"/><rect x="361.8" y="52" width="9.3" height="9" fill="#2a7f62"/><rect x="675.8" y="52" width="8.8" height="9" fill="#2a7f62"/><rect x="624.4" y="52" width="10.5" height="9" fill="#2a7f62"/><rect x="701.4" y="52" width="8.8" height="9" fill="#2a7f62"/><rect x="518.2" y="78" width="10.5" height="9" fill="#c0562d"/><rect x="589.4" y="78" width="11.1" height="9" fill="#c0562d"/><rect x="871.3" y="78" width="9.9" height="9" fill="#c0562d"/><rect x="930.8" y="78" width="8.8" height="9" fill="#c0562d"/><text x="4" y="123" font-size="11" fill="currentColor">5R 原方案</text><rect x="130.6" y="131" width="112.1" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="267.8" y="131" width="94.6" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="470.3" y="131" width="119.1" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="623.2" y="131" width="70.6" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="756.9" y="131" width="104.5" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="120.1" y="117" width="9.9" height="9" fill="#2a7f62"/><rect x="243.3" y="143" width="10.5" height="9" fill="#c0562d"/><rect x="257.3" y="117" width="9.9" height="9" fill="#2a7f62"/><rect x="362.9" y="143" width="9.9" height="9" fill="#c0562d"/><rect x="459.8" y="117" width="9.9" height="9" fill="#2a7f62"/><rect x="590.0" y="143" width="11.1" height="9" fill="#c0562d"/><rect x="611.0" y="117" width="11.7" height="9" fill="#2a7f62"/><rect x="694.4" y="143" width="9.9" height="9" fill="#c0562d"/><rect x="745.8" y="117" width="10.5" height="9" fill="#2a7f62"/><rect x="861.9" y="143" width="9.9" height="9" fill="#c0562d"/><text x="4" y="188" font-size="11" fill="currentColor">我们的推荐设计</text><rect x="74.6" y="196" width="128.4" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="268.4" y="196" width="92.2" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="396.8" y="196" width="120.8" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="601.6" y="196" width="68.3" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="677.5" y="196" width="68.9" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="784.9" y="196" width="70.0" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="860.2" y="196" width="70.0" height="7" fill="#8ab4e8" opacity="0.7"/><rect x="64.7" y="182" width="9.3" height="9" fill="#2a7f62"/><rect x="203.6" y="208" width="9.9" height="9" fill="#c0562d"/><rect x="203.6" y="208" width="9.9" height="9" fill="#c0562d"/><rect x="203.6" y="208" width="11.1" height="9" fill="#c0562d"/><rect x="203.6" y="208" width="11.1" height="9" fill="#c0562d"/><rect x="257.3" y="182" width="10.5" height="9" fill="#2a7f62"/><rect x="257.3" y="182" width="10.5" height="9" fill="#2a7f62"/><rect x="361.2" y="208" width="11.1" height="9" fill="#c0562d"/><rect x="385.7" y="182" width="10.5" height="9" fill="#2a7f62"/><rect x="384.5" y="182" width="11.7" height="9" fill="#2a7f62"/><rect x="518.2" y="208" width="11.1" height="9" fill="#c0562d"/><rect x="588.8" y="182" width="12.3" height="9" fill="#2a7f62"/><rect x="747.0" y="208" width="10.5" height="9" fill="#c0562d"/><rect x="747.0" y="208" width="11.7" height="9" fill="#c0562d"/><rect x="773.8" y="182" width="10.5" height="9" fill="#2a7f62"/><rect x="773.8" y="182" width="10.5" height="9" fill="#2a7f62"/><rect x="773.8" y="182" width="10.5" height="9" fill="#2a7f62"/><rect x="930.8" y="208" width="10.5" height="9" fill="#c0562d"/><text x="60" y="258" font-size="10" fill="currentColor">绿色 = 正向引物位点（上），橙色 = 反向引物位点（下），蓝色条 = 每条读段在引物之后能读到的窗口（SNAP、5R 每读 130 nt；我们含 10 bp 内联 UDP 的 2×150）；金色 = 高变区（E. coli 常用划分）。</text></svg>
+<div class="tbl"><table><thead><tr><th>方案</th><th>引物位点（E. coli 位置）</th></tr></thead><tbody><tr><td class="">5R 原方案</td><td class="">R1-F 103–120 · R1-R 314–332 · R2-F 338–355 · R2-R 519–536 · R3-F 685–702 · R3-R 908–927 · R4-F 944–964 · R4-R 1087–1104 · R5-F 1175–1193 · R5-R 1374–1391</td></tr><tr><td class="">Swift SNAP</td><td class="">V1_f 9–27 · V2_r 372–391 · V3_f 341–357 · V4_f 517–533 · V4_r 785–803 · V5_r 907–926 · V6_f 967–985 · V6&#x27;_f 1055–1070 · V7_f 1099–1114 · V8_r 1390–1407 · V9_r 1492–1507</td></tr><tr><td class="">我们的推荐设计</td><td class="">A1 8–24 / 246–265 · A2 338–356 / 516–535 · A3 556–576 / 785–804 · A4 906–927 / 1177–1195 · A5 1223–1241 / 1492–1510（F / R）</td></tr></tbody></table></div>
+<p>SNAP 的引物位置是我把引物序列比对到 E. coli 16S 得到的（前缀 ^ 去掉；V2_r 的 8 条是同一个位点上的变体，位置在 372–391，是 V3 起点之后的一段，<b>不是</b> V2 的末端；V6_f 的 6 条在 967–985）：</p>
+<div class="tbl"><table><thead><tr><th>SNAP 引物</th><th>序列 5′→3′（去掉前缀 ^）</th><th>nt</th><th>E. coli 位置</th><th>方向</th><th>与 E. coli 错配数</th></tr></thead><tbody><tr><td class="">V1_f</td><td class="seq">GAGTTTGATCMTGGCTCAG</td><td class="n">19</td><td class="n">9–27</td><td class="">正向</td><td class="n">0</td></tr><tr><td class="">V2_1_r</td><td class="seq">CGTCAGGCTTTCGCCCATTG</td><td class="n">20</td><td class="n">372–391</td><td class="">反向</td><td class="n">2</td></tr><tr><td class="">V2_2_r</td><td class="seq">GTTCAGGCTTCCGCCCATTG</td><td class="n">20</td><td class="n">372–391</td><td class="">反向</td><td class="n">3</td></tr><tr><td class="">V2_3_r</td><td class="seq">GGTCAGGCTTTCGCCCATTG</td><td class="n">20</td><td class="n">372–391</td><td class="">反向</td><td class="n">3</td></tr><tr><td class="">V2_4_r</td><td class="seq">GATCAGGCTTTCGCCCATTG</td><td class="n">20</td><td class="n">372–391</td><td class="">反向</td><td class="n">2</td></tr><tr><td class="">V2_5_r</td><td class="seq">GGTCAGACTTTCGTCCATTG</td><td class="n">20</td><td class="n">372–391</td><td class="">反向</td><td class="n">5</td></tr><tr><td class="">V2_6_r</td><td class="seq">GATCAGGGTTTCCCCCATTG</td><td class="n">20</td><td class="n">372–391</td><td class="">反向</td><td class="n">4</td></tr><tr><td class="">V2_7_r</td><td class="seq">CATCAGAGTTGCCTCCATTG</td><td class="n">20</td><td class="n">372–391</td><td class="">反向</td><td class="n">4</td></tr><tr><td class="">V2_8_r</td><td class="seq">CGTCAGGCTTGCGCCCATTG</td><td class="n">20</td><td class="n">372–391</td><td class="">反向</td><td class="n">1</td></tr><tr><td class="">V3_f</td><td class="seq">CCTACGGGAGGCAGCAG</td><td class="n">17</td><td class="n">341–357</td><td class="">正向</td><td class="n">0</td></tr><tr><td class="">V4_f</td><td class="seq">GCCAGCAGCCGCGGTAA</td><td class="n">17</td><td class="n">517–533</td><td class="">正向</td><td class="n">0</td></tr><tr><td class="">V6&#x27;_f</td><td class="seq">ATGGCTGTCGTCAGCT</td><td class="n">16</td><td class="n">1055–1070</td><td class="">正向</td><td class="n">0</td></tr><tr><td class="">V6_f1</td><td class="seq">CAACGCGAAGAACCTTACC</td><td class="n">19</td><td class="n">967–985</td><td class="">正向</td><td class="n">0</td></tr><tr><td class="">V6_f2</td><td class="seq">ATACGCGAGGAACCTTACC</td><td class="n">19</td><td class="n">967–985</td><td class="">正向</td><td class="n">3</td></tr><tr><td class="">V6_f3</td><td class="seq">CTAACCGANGAACCTYACC</td><td class="n">19</td><td class="n">967–985</td><td class="">正向</td><td class="n">3</td></tr><tr><td class="">V6_f4</td><td class="seq">CAACGCGAAAAACCTTACC</td><td class="n">19</td><td class="n">967–985</td><td class="">正向</td><td class="n">1</td></tr><tr><td class="">V6_f5</td><td class="seq">CAACGCGCAGAACCTTACC</td><td class="n">19</td><td class="n">967–985</td><td class="">正向</td><td class="n">1</td></tr><tr><td class="">V6_f6</td><td class="seq">ATACGCGARGAACCTTACC</td><td class="n">19</td><td class="n">967–985</td><td class="">正向</td><td class="n">2</td></tr><tr><td class="">V7_f</td><td class="seq">GYAACGAGCGCAACCC</td><td class="n">16</td><td class="n">1099–1114</td><td class="">正向</td><td class="n">0</td></tr><tr><td class="">V4_r</td><td class="seq">CTACCAGGGTATCTAATCC</td><td class="n">19</td><td class="n">785–803</td><td class="">反向</td><td class="n">0</td></tr><tr><td class="">V5_r</td><td class="seq">CCGTCAATTCMTTTGAGTTT</td><td class="n">20</td><td class="n">907–926</td><td class="">反向</td><td class="n">0</td></tr><tr><td class="">V8_r</td><td class="seq">GACGGGCGGTGTGTACAA</td><td class="n">18</td><td class="n">1390–1407</td><td class="">反向</td><td class="n">0</td></tr><tr><td class="">V9_r</td><td class="seq">TACCTTGTTACGACTT</td><td class="n">16</td><td class="n">1492–1507</td><td class="">反向</td><td class="n">0</td></tr></tbody></table></div>
+
+<h2>二、读段覆盖哪些区域</h2>
+<p>两端各读一条，每条读段从引物之后读 130 nt（SNAP 脚本里的 READLEN=130；5R 同样假设 130；我们的推荐设计按内联 UDP 10 bp、2×150 来算）。这个窗口只取决于引物位置，不依赖引物是怎么配对的：</p>
+<div class="tbl"><table><thead><tr><th>方案</th><th>读到的碱基数</th><th>理想属准确率（所有读段都得到）</th><th>V1</th><th>V2</th><th>V3</th><th>V4</th><th>V5</th><th>V6</th><th>V7</th><th>V8</th><th>V9</th></tr></thead><tbody><tr><td class="">Swift SNAP（读段窗口，每读 130 nt）</td><td class="n">1240</td><td class="n">95.30%</td><td class="n">100%</td><td class="n">21%</td><td class="n">85%</td><td class="n">100%</td><td class="n">100%</td><td class="n">100%</td><td class="n">100%</td><td class="n">71%</td><td class="n">100%</td></tr><tr><td class="">5R 原方案（读段窗口，每读 130 nt）</td><td class="n">863</td><td class="n">94.05%</td><td class="n">0%</td><td class="n">100%</td><td class="n">100%</td><td class="n">0%</td><td class="n">100%</td><td class="n">100%</td><td class="n">0%</td><td class="n">100%</td><td class="n">0%</td></tr><tr><td class="">我们的推荐设计（含 10 bp UDP 内联，2×150）</td><td class="n">1067</td><td class="n">95.35%</td><td class="n">100%</td><td class="n">100%</td><td class="n">100%</td><td class="n">99%</td><td class="n">0%</td><td class="n">100%</td><td class="n">100%</td><td class="n">100%</td><td class="n">100%</td></tr><tr><td class="">我们的推荐设计（完整内部）</td><td class="n">1087</td><td class="n">95.38%</td><td class="n">100%</td><td class="n">100%</td><td class="n">100%</td><td class="n">99%</td><td class="n">0%</td><td class="n">100%</td><td class="n">100%</td><td class="n">100%</td><td class="n">100%</td></tr></tbody></table></div>
+<ul>
+<li><b>SNAP</b>：读到约 1,240 个碱基，V1、V3（85%）、V4、V5、V6、V7、V9 基本读到，<b>V2 只有 21%</b>（V1_f 往后读到 157，V2_r 往前读到 242，中间 158–241 没读到），V8 只有 71%。理想属准确率 95.30%。</li>
+<li><b>5R</b>：约 860 个碱基，缺 V1、V4、V7、V9；理想属准确率 94.05%。</li>
+<li><b>我们</b>：约 1,070 个碱基，缺 V5，V4 读到 99%；理想属准确率 95.35%。我们读到的碱基更少，理想准确率和 SNAP 相当（差 0.05 个百分点，在误差范围内）。</li>
+<li>SNAP 的引物对（哪条正向配哪条反向）在你给的文件里没有，我只能按名字和位置推测（V1_f–V2_r、V3_f–V4_r、V4_f–V5_r、V6_f 和 V6′_f–V8_r、V7_f–V9_r）；真实的产物长度要看 Swift 的产品说明书。V3_f（341–357）和 V2_r（372–391）只相隔 14 个碱基，如果它们配成一对，只会得到 51 bp 的短产物。</li>
+</ul>
+
+<h2>三、引物序列对数据库的匹配（覆盖率）</h2>
+<p>按“最多 1 个错配、3′ 端 3 个碱基匹配”的规则，用 Greengenes 13_8 和 SILVA 128（留出集，每个主要门等权）：</p>
+<div class="tbl"><table><thead><tr><th>方案</th><th>位点数</th><th>寡核苷酸数</th><th>展开数</th><th>各位点平均覆盖（主要门平均）GG / SILVA</th><th>最差位点的最差门 GG / SILVA</th><th>支原体平均覆盖 GG / SILVA</th><th>平均覆盖 <80% 的位点数（GG）</th></tr></thead><tbody><tr><td class="">5R 原方案</td><td class="n">10</td><td class="n">10</td><td class="n">14</td><td class="n">74% / 77%</td><td class="n">0% / 1%</td><td class="n">59% / 66%</td><td class="n">7</td></tr><tr><td class="">Swift SNAP</td><td class="n">11</td><td class="n">23</td><td class="n">34</td><td class="n">88% / 90%</td><td class="n">3% / 6%</td><td class="n">82% / 87%</td><td class="n">2</td></tr><tr><td class="">我们的推荐设计</td><td class="n">10</td><td class="n">18</td><td class="n">118</td><td class="n">95% / 94%</td><td class="n">69% / 78%</td><td class="n">95% / 94%</td><td class="n">0</td></tr></tbody></table></div>
+<p>SNAP 各位点：</p>
+<div class="tbl"><table><thead><tr><th>SNAP 位点</th><th>寡核苷酸数</th><th>展开数</th><th>GG：主要门平均 / 最差门</th><th>SILVA：主要门平均 / 最差门</th><th>支原体 GG / SILVA</th></tr></thead><tbody><tr><td class="">V1_f</td><td class="n">1</td><td class="n">2</td><td class="n">97% / 93%</td><td class="n">94% / 88%</td><td class="n">100% / 96%</td></tr><tr><td class="">V2_r</td><td class="n">8</td><td class="n">8</td><td class="n">60% / 24%</td><td class="n">68% / 36%</td><td class="n">20% / 55%</td></tr><tr><td class="">V3_f</td><td class="n">1</td><td class="n">1</td><td class="n">87% / 3%</td><td class="n">89% / 28%</td><td class="n">93% / 94%</td></tr><tr><td class="">V4_f</td><td class="n">1</td><td class="n">1</td><td class="n">98% / 96%</td><td class="n">98% / 92%</td><td class="n">98% / 99%</td></tr><tr><td class="">V6&#x27;_f</td><td class="n">1</td><td class="n">1</td><td class="n">95% / 68%</td><td class="n">94% / 80%</td><td class="n">78% / 88%</td></tr><tr><td class="">V6_f</td><td class="n">6</td><td class="n">14</td><td class="n">85% / 36%</td><td class="n">90% / 62%</td><td class="n">52% / 73%</td></tr><tr><td class="">V7_f</td><td class="n">1</td><td class="n">2</td><td class="n">86% / 6%</td><td class="n">87% / 21%</td><td class="n">75% / 79%</td></tr><tr><td class="">V4_r</td><td class="n">1</td><td class="n">1</td><td class="n">73% / 5%</td><td class="n">78% / 6%</td><td class="n">88% / 92%</td></tr><tr><td class="">V5_r</td><td class="n">1</td><td class="n">2</td><td class="n">97% / 94%</td><td class="n">97% / 95%</td><td class="n">96% / 95%</td></tr><tr><td class="">V8_r</td><td class="n">1</td><td class="n">1</td><td class="n">99% / 97%</td><td class="n">98% / 89%</td><td class="n">99% / 91%</td></tr><tr><td class="">V9_r</td><td class="n">1</td><td class="n">1</td><td class="n">97% / 91%</td><td class="n">96% / 93%</td><td class="n">99% / 96%</td></tr></tbody></table></div>
+<ul>
+<li><b>SNAP 的弱点</b>：V2_r（8 条变体合起来 GG 60% / SILVA 68%，最差门只有 24% / 36%，支原体 20% / 55%）、V4_r（73% / 78%，最差门 5% / 6%）、V6_f（6 条合起来 85% / 90%，最差门 36% / 62%）、V3_f（平均 87% / 89%，但最差门只有 3% / 28%，是浮霉菌门 Planctomycetes）和 V7_f（平均 86% / 87%，最差门 6% / 21%）。这些引物几乎没有简并，是经典的通用引物。</li>
+<li><b>SNAP 的优点</b>：V1_f、V4_f、V5_r、V8_r、V9_r 都在 94–99%，最差门也在 88–96%。</li>
+<li><b>我们</b>：平均覆盖最高（GG 95% / SILVA 94%），最差位点的最差门也在 69% / 78%，没有平均覆盖低于 80% 的位点；代价是 118 个展开序列（SNAP 34 个，5R 14 个）。</li>
+<li><b>5R</b>：10 个位点里有 7 个平均覆盖低于 80%，几个位点的最差门是 0%。</li>
+</ul>
+<p>把引物配成对之后的覆盖（SNAP 的配对是我推测的）：</p>
+<div class="tbl"><table><thead><tr><th>方案</th><th>引物对数</th><th>各引物对平均覆盖 GG / SILVA</th><th>最差引物对的最差门 GG / SILVA</th><th>至少一半引物对都扩出 GG / SILVA</th><th>全部引物对都扩出 GG / SILVA</th></tr></thead><tbody><tr><td class="">Swift SNAP（假设配对）</td><td class="n">6</td><td class="n">80% / 82%</td><td class="n">3% / 5%</td><td class="n">98% / 83%</td><td class="n">46% / 42%</td></tr><tr><td class="">5R 原方案</td><td class="n">5</td><td class="n">56% / 60%</td><td class="n">0% / 1%</td><td class="n">69% / 62%</td><td class="n">15% / 14%</td></tr><tr><td class="">我们的推荐设计</td><td class="n">5</td><td class="n">91% / 90%</td><td class="n">69% / 74%</td><td class="n">97% / 83%</td><td class="n">72% / 58%</td></tr></tbody></table></div>
+<ul>
+<li>SNAP 6 对引物里“全部扩出”的序列 Greengenes 约 47%、SILVA 约 43%（我们 5 对：72% / 58%；5R：15% / 14%）；至少一半的引物对扩出（GG / SILVA）：SNAP 98% / 83%，我们 97% / 83%，5R 69% / 62%。</li>
+<li>对支原体（Tenericutes）：SNAP 各位点平均 GG 82% / SILVA 87%，我们 95% / 94%，5R 59% / 66%。SNAP 的 V2_r 和 V6_f 对支原体最弱。</li>
+</ul>
+
+<h2>四、人基因组和线粒体脱靶</h2>
+<ul>
+<li>SNAP：≤2 个错配的位点 486 个，≤3 个错配的潜在产物 3 个；我们的推荐池：≤2 个错配 3,024 个位点，≤3 个错配 59 个潜在产物。SNAP 的寡核苷酸少、展开序列少，所以人基因组命中明显少。</li>
+<li>SNAP 里每个展开序列命中人基因组最多的是 V3_f（218 个）、V6′_f（64 个）、V9_r（47 个，16 nt）、V1_f（25 个）；我们最多的是 A1-F（291 个）。</li>
+<li>线粒体：SNAP 的 V9_r 在 12S rRNA 的 1556 位只有 1 个错配（只有这一个，所以单独不会形成产物）；我们对应的位点是 3–4 个错配。</li>
+</ul>
+
+<h2>五、分析流程的差别</h2>
+<ul>
+<li><b>16S-SNAPP（zip 里的流程）</b>：cutadapt 按引物文件两端去引物，每条读段截到 130 nt，DADA2（池化样本推断，R1/R2 直接拼接 <code>justConcatenate=TRUE</code>，不要求重叠，去嵌合体），RDP 11.5 做 BLAST 找模板，把来自不同区域的读段关联到同一个参考序列上，再合并计数，用 RDP Classifier 分类到属及以上。</li>
+<li><b>5R/SMURF</b>（我们这个仓库）：每个区域一个 k-mer 数据库，把拼接后的读段（R1 + 反向互补 R2）用期望最大化分配到物种，不依赖 DADA2。</li>
+<li>两个流程的共同点是读段对直接拼接、不要求重叠，所以我们之前讨论的“V8·V9 缺 8 bp 缺口”对这两个流程都不是问题；需要合并读段的流程才会受影响。</li>
+<li>SNAPP 依赖 RDP 11.5 数据库和 RDP Classifier，只能到属；SMURF 的结果取决于你建的区域数据库。引物换了，SMURF 的数据库需要重建，SNAPP 不需要但要用它自己的引物文件。</li>
+</ul>
+
+<h2>六、各自的优缺点</h2>
+<div class="tbl"><table><thead><tr><th>方案</th><th>优点</th><th>缺点</th></tr></thead><tbody><tr><td class="">Swift SNAP</td><td class="">区域覆盖面最广（V1、V3、V4、V5、V6、V7、V9 基本读到）；引物简单，展开序列只有 34 个；人基因组脱靶少；有商品化试剂盒和现成流程（含 DADA2 + RDP）；引物是经典通用引物，有大量文献使用。</td><td class="">V2 中段、V8 前半读不到；V2_r、V4_r、V6_f、V3_f、V7_f 对一些菌门匹配很差（最差门 3–36%），对支原体弱；引物位点之间有重叠或靠得很近（V3_f 和 V2_r 只隔 14 个碱基）；V9_r Tm 只有 49 °C；流程只到属，依赖 RDP 数据库。</td></tr><tr><td class="">5R</td><td class="">引物数最少（10 个，展开序列 14 个）；已有协议和历史数据，结果可比；SMURF 流程能分到物种。</td><td class="">引物是 6 年前的，对今天的数据库匹配最差（平均覆盖 74–77%，7 个位点低于 80%）；缺 V1、V4、V7、V9；对支原体 V6、V8 扩增子几乎扩不出。</td></tr><tr><td class="">我们的 5 扩增子</td><td class="">引物匹配最好（平均覆盖 94–95%，没有低于 80% 的位点），支原体覆盖高；位点不重叠、扩增子短，读段能覆盖；人基因组脱靶经过检查和处理；有二聚体和 Tm 检查；理想属准确率最高或相当（95.35%，SNAP 95.30%）。</td><td class="">没有 V5；寡核苷酸多、简并度高（18 条、118 个展开序列），Tm 范围 54.8–66.9 °C；没有实验验证；需要重建 SMURF 数据库；A1-F 对人基因组命中多。</td></tr></tbody></table></div>
+
+<h2>七、限制</h2>
+<ul>
+<li>SNAP 的引物是文件里的序列，我按 E. coli 序列推位置；引物是怎么配对、产物多长、各引物浓度比例，文件里没有，我没有假设来源，只在表里标了“假设配对”。</li>
+<li>覆盖率按我们统一的序列匹配规则计算，不是实际 PCR 效率；数据库是 Greengenes 13_8 和 SILVA 128，不是 SNAP 用的 RDP 11.5；没有实验验证。</li>
+<li>理想准确率是代理指标（属级最近邻，假设所有读段都得到），不代表 SNAPP 或 SMURF 的实际表现。</li>
+<li>我们的 A2-F 引物在这次比较里发现并修正了一个问题（见完整订购清单页面顶部的更正）。</li>
+</ul>
+<footer>脚本：<code>python_5R/explore/snap*.py</code>；数据：<code>docs/primer_design/snap_*.csv</code>、<code>Swift_16S_SNAP_primers_v2.fasta</code>。</footer>
+</main></div>

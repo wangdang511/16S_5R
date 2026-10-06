@@ -1,0 +1,4 @@
+scheme,pairs,SILVA_pair_mean,SILVA_pair_worst,SILVA_ge_half,SILVA_all,GG_pair_mean,GG_pair_worst,GG_ge_half,GG_all
+Swift SNAP（假设配对）,6,0.825,0.047,0.832,0.425,0.795,0.034,0.979,0.465
+5R 原方案,5,0.602,0.009,0.623,0.144,0.562,0.0,0.69,0.154
+我们的推荐设计,5,0.897,0.741,0.828,0.584,0.91,0.689,0.973,0.721
