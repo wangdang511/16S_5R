@@ -10,7 +10,7 @@ def tbl(rows, heads, seqcol=None): return '<div class="tbl"><table><thead><tr>' 
 pc = lambda x: "—" if pd.isna(x) else f"{x * 100:.0f}%"
 P = pd.read_csv(f"{HERE}/snap_positions.csv"); C = pd.read_csv(f"{HERE}/snap_site_cov.csv"); A = pd.read_csv(f"{HERE}/snap_all_sites.csv"); SS = pd.read_csv(f"{HERE}/snap_scheme_summary.csv").set_index("scheme")
 CMP = pd.read_csv(f"{HERE}/snap_compare.csv"); PC = pd.read_csv(f"{HERE}/snap_pair_cov.csv").set_index("scheme"); OS = pd.read_csv(f"{HERE}/snap_offtarget_summary.csv"); OP = pd.read_csv(f"{HERE}/snap_offtarget_per_oligo.csv")
-W = json.load(open(f"{HERE}/snap_windows.json")); O = pd.read_csv(f"{HERE}/order_list_full.csv")
+W = json.load(open(f"{HERE}/snap_windows.json")); PE = pd.read_csv(f"{HERE}/snap_pe_compare.csv"); O = pd.read_csv(f"{HERE}/order_list_full.csv")
 five = [("R1-F", "F", 103, 120), ("R1-R", "R", 314, 332), ("R2-F", "F", 338, 355), ("R2-R", "R", 519, 536), ("R3-F", "F", 685, 702), ("R3-R", "R", 908, 927), ("R4-F", "F", 944, 964), ("R4-R", "R", 1087, 1104), ("R5-F", "F", 1175, 1193), ("R5-R", "R", 1374, 1391)]
 VR = {"V1": (69, 99), "V2": (137, 242), "V3": (433, 497), "V4": (576, 682), "V5": (822, 879), "V6": (986, 1043), "V7": (1117, 1173), "V8": (1243, 1294), "V9": (1435, 1465)}
 # ---- 示意图
@@ -37,7 +37,7 @@ svg += '<text x="60" y="258" font-size="10" fill="currentColor">绿色 = 正向�
 t_pos = tbl([[r["name"], r.seq, r.nt, f"{r.start}–{r.end}", "正向" if r.strand == "+" else "反向", r.mismatch] for _, r in P.iterrows()], ["SNAP 引物", "序列 5′→3′（去掉前缀 ^）", "nt", "E. coli 位置", "方向", "与 E. coli 错配数"], seqcol=1)
 t_ours = tbl([["5R 原方案", " · ".join(f"{n} {a}–{b}" for n, o, a, b in five)], ["Swift SNAP", "V1_f 9–27 · V2_r 372–391 · V3_f 341–357 · V4_f 517–533 · V4_r 785–803 · V5_r 907–926 · V6_f 967–985 · V6'_f 1055–1070 · V7_f 1099–1114 · V8_r 1390–1407 · V9_r 1492–1507"],
                 ["我们的推荐设计", "A1 8–24 / 246–265 · A2 338–356 / 516–535 · A3 556–576 / 785–804 · A4 906–927 / 1177–1195 · A5 1223–1241 / 1492–1510（F / R）"]], ["方案", "引物位点（E. coli 位置）"])
-t_win = tbl([[r.scheme, int(r.bases), f"{r.ideal_acc * 100:.2f}%"] + [f"{r[k] * 100:.0f}%" for k in VR] for _, r in CMP.iterrows()], ["方案", "读到的碱基数", "理想属准确率（所有读段都得到）"] + [f"{k}" for k in VR])
+t_win = tbl([[r.scheme, int(r.bases), f"{r.ideal_acc * 100:.2f}%"] + [f"{r[k] * 100:.0f}%" for k in VR] for _, r in pd.concat([CMP[CMP.scheme.str.startswith('5R')], PE]).iterrows()], ["方案", "读到的碱基数", "理想属准确率（所有读段都得到）"] + [f"{k}" for k in VR])
 t_site = tbl([[s, int(r.sites), int(r.oligos), int(r.exp), f"{r.GGm * 100:.0f}% / {r.SILm * 100:.0f}%", f"{r.GGmin * 100:.0f}% / {r.SILmin * 100:.0f}%", f"{r.Ten_GG * 100:.0f}% / {r.Ten_SIL * 100:.0f}%", int(r.n_weak)] for s, r in SS.iterrows()],
              ["方案", "位点数", "寡核苷酸数", "展开数", "各位点平均覆盖（主要门平均）GG / SILVA", "最差位点的最差门 GG / SILVA", "支原体平均覆盖 GG / SILVA", "平均覆盖 <80% 的位点数（GG）"])
 sn = A[A.scheme == "Swift SNAP"]
@@ -53,9 +53,10 @@ body = f"""
 <header>
   <div class="eyebrow">16S_5R · 方案比较</div>
   <h1>5R、我们的 5 扩增子方案、Swift 16S SNAP 的引物位置和优缺点</h1>
-  <p class="lede">三个方案的引物位置很不一样：5R 的引物集中在 V2、V3、V5、V6、V8 附近，缺 V1、V4、V7、V9；Swift SNAP 用 11 组引物（23 条寡核苷酸），读段窗口覆盖 V1 到 V9（V2 中段和 V8 前半漏掉）；我们的方案 10 个位点（18 条寡核苷酸，118 个展开序列），覆盖 V1、V2、V3、V4、V6、V7、V8、V9，缺 V5。在引物对序列的匹配上，我们的方案最好、SNAP 居中、5R 最差；SNAP 的优点是区域覆盖面最广、引物简单（展开序列只有 34 个）、有现成的商品化流程，主要短板是有几个引物（V2_r、V4_r、V3_f、V7_f、V6_f）对一些菌门匹配很差。这些都是序列层面的计算比较，没有实验验证。</p>
+  <p class="lede">三个方案的引物位置很不一样：5R 的引物集中在 V2、V3、V5、V6、V8 附近，缺 V1、V4、V7、V9；Swift SNAP 用 11 组引物（23 条寡核苷酸），读段窗口在 PE250 下覆盖 V1 到 V9，在 PE150 下漏掉 V2 中段和 V8 前半；我们的方案 10 个位点（18 条寡核苷酸，118 个展开序列），覆盖 V1、V2、V3、V4、V6、V7、V8、V9，缺 V5。在引物对序列的匹配上，我们的方案最好、SNAP 居中、5R 最差；SNAP 的优点是区域覆盖面最广（PE250 下 V1 到 V9 全读到）、引物简单（展开序列只有 34 个）、有现成的商品化流程，主要短板是有几个引物（V2_r、V4_r、V3_f、V7_f、V6_f）对一些菌门匹配很差，并且需要 PE250。这些都是序列层面的计算比较，没有实验验证。</p>
 </header>
 
+<p style="border:1px solid var(--warn);background:var(--surface);padding:10px 14px;border-radius:8px"><b>更正（读长）：</b>本页第一版把 SNAP 的读段按 130 nt 算（它脚本里的默认 READLEN=130，对应 PE150）。你说 SNAP 实际用 PE250（读段约 230 nt），这样 SNAP 的两条读段几乎把 V1 到 V9 全读到（理想属准确率 95.86%），“V2 只读到 21%、V8 71%”只在 PE150 下成立。下面的读段覆盖表同时列出 SNAP 在 PE250 和 PE150 下的结果；而我们的方案只按 PE150（含 10 bp 内联 UDP）算。</p>
 <h2>一、引物位置（E. coli 16S 编号）</h2>
 {svg}
 {t_ours}
@@ -63,12 +64,12 @@ body = f"""
 {t_pos}
 
 <h2>二、读段覆盖哪些区域</h2>
-<p>两端各读一条，每条读段从引物之后读 130 nt（SNAP 脚本里的 READLEN=130；5R 同样假设 130；我们的推荐设计按内联 UDP 10 bp、2×150 来算）。这个窗口只取决于引物位置，不依赖引物是怎么配对的：</p>
+<p>两端各读一条，每条读段从引物之后读一段：SNAP 在 PE250 下约 230 nt（也列了 PE150 下的 130 nt 作对照），5R 假设 130 nt，我们的推荐设计按内联 UDP 10 bp、2×150 来算。这个窗口只取决于引物位置，不依赖引物是怎么配对的：</p>
 {t_win}
 <ul>
-<li><b>SNAP</b>：读到约 1,240 个碱基，V1、V3（85%）、V4、V5、V6、V7、V9 基本读到，<b>V2 只有 21%</b>（V1_f 往后读到 157，V2_r 往前读到 242，中间 158–241 没读到），V8 只有 71%。理想属准确率 95.30%。</li>
+<li><b>SNAP，PE250</b>：读到约 1,385 个碱基，V1 到 V9 全部读到，理想属准确率 95.86%，是三个方案里最高的。<b>SNAP，PE150</b>：读到约 1,240 个碱基，V2 只有 21%（V1_f 往后读到 157，V2_r 往前读到 242，中间 158–241 没读到）、V8 71%、V3 85%，理想属准确率 95.30%。</li>
 <li><b>5R</b>：约 860 个碱基，缺 V1、V4、V7、V9；理想属准确率 94.05%。</li>
-<li><b>我们</b>：约 1,070 个碱基，缺 V5，V4 读到 99%；理想属准确率 95.35%。我们读到的碱基更少，理想准确率和 SNAP 相当（差 0.05 个百分点，在误差范围内）。</li>
+<li><b>我们（PE150）</b>：约 1,070 个碱基，缺 V5，V4 读到 99%；理想属准确率 95.35%；加了 V5 的方案 B 约 1,140 个碱基，95.55%。同样是 PE150，我们比 SNAP 高 0.05–0.25 个百分点；SNAP 用 PE250 才能读全，比我们高 0.3 个百分点（方案 B）到 0.5 个百分点（原推荐）。</li>
 <li>SNAP 的引物对（哪条正向配哪条反向）在你给的文件里没有，我只能按名字和位置推测（V1_f–V2_r、V3_f–V4_r、V4_f–V5_r、V6_f 和 V6′_f–V8_r、V7_f–V9_r）；真实的产物长度要看 Swift 的产品说明书。V3_f（341–357）和 V2_r（372–391）只相隔 14 个碱基，如果它们配成一对，只会得到 51 bp 的短产物。</li>
 </ul>
 
@@ -106,7 +107,7 @@ body = f"""
 </ul>
 
 <h2>六、各自的优缺点</h2>
-{tbl([["Swift SNAP", "区域覆盖面最广（V1、V3、V4、V5、V6、V7、V9 基本读到）；引物简单，展开序列只有 34 个；人基因组脱靶少；有商品化试剂盒和现成流程（含 DADA2 + RDP）；引物是经典通用引物，有大量文献使用。", "V2 中段、V8 前半读不到；V2_r、V4_r、V6_f、V3_f、V7_f 对一些菌门匹配很差（最差门 3–36%），对支原体弱；引物位点之间有重叠或靠得很近（V3_f 和 V2_r 只隔 14 个碱基）；V9_r Tm 只有 49 °C；流程只到属，依赖 RDP 数据库。"],
+{tbl([["Swift SNAP", "区域覆盖面最广（PE250 下 V1 到 V9 全部读到）；引物简单，展开序列只有 34 个；人基因组脱靶少；有商品化试剂盒和现成流程（含 DADA2 + RDP）；引物是经典通用引物，有大量文献使用。", "需要 PE250 才能读全（PE150 下 V2 中段、V8 前半读不到）；V2_r、V4_r、V6_f、V3_f、V7_f 对一些菌门匹配很差（最差门 3–36%），对支原体弱；引物位点之间有重叠或靠得很近（V3_f 和 V2_r 只隔 14 个碱基）；V9_r Tm 只有 49 °C；流程只到属，依赖 RDP 数据库。"],
           ["5R", "引物数最少（10 个，展开序列 14 个）；已有协议和历史数据，结果可比；SMURF 流程能分到物种。", "引物是 6 年前的，对今天的数据库匹配最差（平均覆盖 74–77%，7 个位点低于 80%）；缺 V1、V4、V7、V9；对支原体 V6、V8 扩增子几乎扩不出。"],
           ["我们的 5 扩增子", "引物匹配最好（平均覆盖 94–95%，没有低于 80% 的位点），支原体覆盖高；位点不重叠、扩增子短，读段能覆盖；人基因组脱靶经过检查和处理；有二聚体和 Tm 检查；理想属准确率最高或相当（95.35%，SNAP 95.30%）。", "没有 V5；寡核苷酸多、简并度高（18 条、118 个展开序列），Tm 范围 54.8–66.9 °C；没有实验验证；需要重建 SMURF 数据库；A1-F 对人基因组命中多。"]], ["方案", "优点", "缺点"])}
 
@@ -114,6 +115,7 @@ body = f"""
 <ul>
 <li>SNAP 的引物是文件里的序列，我按 E. coli 序列推位置；引物是怎么配对、产物多长、各引物浓度比例，文件里没有，我没有假设来源，只在表里标了“假设配对”。</li>
 <li>覆盖率按我们统一的序列匹配规则计算，不是实际 PCR 效率；数据库是 Greengenes 13_8 和 SILVA 128，不是 SNAP 用的 RDP 11.5；没有实验验证。</li>
+<li>PE250 下的读段长度是我按“读长 250 减去引物约 20 nt”估计的 230 nt（200 nt 的结果相同，因为窗口都覆盖到）；真实读长要看数据质量。</li>
 <li>理想准确率是代理指标（属级最近邻，假设所有读段都得到），不代表 SNAPP 或 SMURF 的实际表现。</li>
 <li>我们的 A2-F 引物在这次比较里发现并修正了一个问题（见完整订购清单页面顶部的更正）。</li>
 </ul>
