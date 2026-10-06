@@ -10,7 +10,7 @@ def tbl(rows, heads, seqcol=None): return '<div class="tbl"><table><thead><tr>' 
 pc = lambda x: "—" if pd.isna(x) else f"{x * 100:.0f}%"
 P = pd.read_csv(f"{HERE}/snap_positions.csv"); C = pd.read_csv(f"{HERE}/snap_site_cov.csv"); A = pd.read_csv(f"{HERE}/snap_all_sites.csv"); SS = pd.read_csv(f"{HERE}/snap_scheme_summary.csv").set_index("scheme")
 CMP = pd.read_csv(f"{HERE}/snap_compare.csv"); PC = pd.read_csv(f"{HERE}/snap_pair_cov.csv").set_index("scheme"); OS = pd.read_csv(f"{HERE}/snap_offtarget_summary.csv"); OP = pd.read_csv(f"{HERE}/snap_offtarget_per_oligo.csv")
-W = json.load(open(f"{HERE}/snap_windows.json")); PE = pd.read_csv(f"{HERE}/snap_pe_compare.csv"); O = pd.read_csv(f"{HERE}/order_list_full.csv")
+W = json.load(open(f"{HERE}/snap_windows.json")); PR = pd.read_csv(f"{HERE}/snap_products.csv"); PE = pd.read_csv(f"{HERE}/snap_pe_compare.csv"); O = pd.read_csv(f"{HERE}/order_list_full.csv")
 five = [("R1-F", "F", 103, 120), ("R1-R", "R", 314, 332), ("R2-F", "F", 338, 355), ("R2-R", "R", 519, 536), ("R3-F", "F", 685, 702), ("R3-R", "R", 908, 927), ("R4-F", "F", 944, 964), ("R4-R", "R", 1087, 1104), ("R5-F", "F", 1175, 1193), ("R5-R", "R", 1374, 1391)]
 VR = {"V1": (69, 99), "V2": (137, 242), "V3": (433, 497), "V4": (576, 682), "V5": (822, 879), "V6": (986, 1043), "V7": (1117, 1173), "V8": (1243, 1294), "V9": (1435, 1465)}
 # ---- 示意图
@@ -44,6 +44,7 @@ sn = A[A.scheme == "Swift SNAP"]
 t_snap = tbl([[r.site, int(r.oligos), int(r.expansions), f"{pc(r.GG_mean)} / {pc(r.GG_min)}", f"{pc(r.SILVA_mean)} / {pc(r.SILVA_min)}", f"{pc(r.Ten_GG)} / {pc(r.Ten_SILVA)}"] for _, r in sn.iterrows()],
              ["SNAP 位点", "寡核苷酸数", "展开数", "GG：主要门平均 / 最差门", "SILVA：主要门平均 / 最差门", "支原体 GG / SILVA"])
 pp = PC
+t_prod = tbl([[r.F, r.R, int(r.length), f"{r.GG_all * 100:.0f}% / {r.SILVA_all * 100:.0f}%", f"{r.GG_phylum_mean * 100:.0f}% / {r.SILVA_phylum_mean * 100:.0f}%"] for _, r in PR.iterrows()], ["正向引物", "反向引物", "产物长度 bp", "两条引物都能结合的序列比例 GG / SILVA（全部序列）", "主要门平均 GG / SILVA"])
 t_pair = tbl([[s, int(r.pairs), f"{r.GG_pair_mean * 100:.0f}% / {r.SILVA_pair_mean * 100:.0f}%", f"{r.GG_pair_worst * 100:.0f}% / {r.SILVA_pair_worst * 100:.0f}%", f"{r.GG_ge_half * 100:.0f}% / {r.SILVA_ge_half * 100:.0f}%", f"{r.GG_all * 100:.0f}% / {r.SILVA_all * 100:.0f}%"] for s, r in pp.iterrows()],
              ["方案", "引物对数", "各引物对平均覆盖 GG / SILVA", "最差引物对的最差门 GG / SILVA", "至少一半引物对都扩出 GG / SILVA", "全部引物对都扩出 GG / SILVA"])
 s_snap = OS[OS.set == "SNAP"].set_index("mm"); s_rec = OS[OS.set == "REC2"].set_index("mm")
@@ -98,7 +99,19 @@ body = f"""
 <li>线粒体：SNAP 的 V9_r 在 12S rRNA 的 1556 位只有 1 个错配（只有这一个，所以单独不会形成产物）；我们对应的位点是 3–4 个错配。</li>
 </ul>
 
-<h2>五、分析流程的差别</h2>
+<h2>五、单管里 SNAP 会不会扩出短片段：会</h2>
+<p>SNAP 所有引物在同一管（按你的说法），任何一条正向引物都能和下游的任何一条反向引物配成产物。我用 Greengenes 和 SILVA 的留出序列（主要门）检查每对引物在序列上能不能同时结合（≤1 个错配、3′ 端 3 个碱基匹配），产物长度按 E. coli 位置算：</p>
+{t_prod}
+<ul>
+<li><b>确认会有短片段</b>：V3_f（341–357）和 V2_r（372–391）两条引物的 3′ 端面对面，中间只隔 14 个碱基，产物只有 <b>51 bp</b>（含两条引物，中间只剩 14 个碱基的模板）。它不是引物二聚体，是模板特异的产物，在 SILVA 58%、Greengenes 61% 的序列上两条引物都能结合，所以绝大多数细菌都会形成这个 51 bp 产物；产物这么短，扩增效率最高，会优先消耗 V3_f 和 V2_r。</li>
+<li>这个 51 bp 产物在他们的流程里会被丢掉：cutadapt 去引物后只剩 14 bp，而 <code>--minimum-length</code> 设成 130（READLEN），所以这些读段被浪费，不会进入分析；浪费多少比例取决于实际扩增效率，我无法从序列预测。</li>
+<li>其他产物（287–590 bp）也会同时形成：V4_f × V4_r（287 bp）、V7_f × V8_r（309 bp）、V6′_f × V8_r（353 bp）、V1_f × V2_r（383 bp）、V4_f × V5_r（410 bp）等，在 57–95% 的序列上都能形成，彼此竞争同一条引物。</li>
+<li>SNAP 引物池两两检查没有严重的引物二聚体（ΔG ≤ −9 kcal/mol 或 3′ 端 ≤ −6 的），所以短片段主要来自上面这种“引物位点靠得近”的模板产物，不是引物二聚体。</li>
+<li>和我们的对比：我们的方案所有非目标产物都 ≥467 bp，比目标产物（198–290 bp，加 V5 后还有 372 bp）都长，不会出现比目标更短的产物。</li>
+<li><b>局限</b>：这是纯序列层面的推断，没有考虑 Swift 实际可能用的引物浓度、引物配对（比如把 V3_f 和 V2_r 分在不同的反应里）、退火条件或其他设计。你给的文件里没有这些信息，真实情况要看 Swift 的产品说明书或实测。</li>
+</ul>
+
+<h2>六、分析流程的差别</h2>
 <ul>
 <li><b>16S-SNAPP（zip 里的流程）</b>：cutadapt 按引物文件两端去引物，每条读段截到 130 nt，DADA2（池化样本推断，R1/R2 直接拼接 <code>justConcatenate=TRUE</code>，不要求重叠，去嵌合体），RDP 11.5 做 BLAST 找模板，把来自不同区域的读段关联到同一个参考序列上，再合并计数，用 RDP Classifier 分类到属及以上。</li>
 <li><b>5R/SMURF</b>（我们这个仓库）：每个区域一个 k-mer 数据库，把拼接后的读段（R1 + 反向互补 R2）用期望最大化分配到物种，不依赖 DADA2。</li>
@@ -106,12 +119,12 @@ body = f"""
 <li>SNAPP 依赖 RDP 11.5 数据库和 RDP Classifier，只能到属；SMURF 的结果取决于你建的区域数据库。引物换了，SMURF 的数据库需要重建，SNAPP 不需要但要用它自己的引物文件。</li>
 </ul>
 
-<h2>六、各自的优缺点</h2>
+<h2>七、各自的优缺点</h2>
 {tbl([["Swift SNAP", "区域覆盖面最广（PE250 下 V1 到 V9 全部读到）；引物简单，展开序列只有 34 个；人基因组脱靶少；有商品化试剂盒和现成流程（含 DADA2 + RDP）；引物是经典通用引物，有大量文献使用。", "需要 PE250 才能读全（PE150 下 V2 中段、V8 前半读不到）；V2_r、V4_r、V6_f、V3_f、V7_f 对一些菌门匹配很差（最差门 3–36%），对支原体弱；引物位点之间有重叠或靠得很近（V3_f 和 V2_r 只隔 14 个碱基）；V9_r Tm 只有 49 °C；流程只到属，依赖 RDP 数据库。"],
           ["5R", "引物数最少（10 个，展开序列 14 个）；已有协议和历史数据，结果可比；SMURF 流程能分到物种。", "引物是 6 年前的，对今天的数据库匹配最差（平均覆盖 74–77%，7 个位点低于 80%）；缺 V1、V4、V7、V9；对支原体 V6、V8 扩增子几乎扩不出。"],
           ["我们的 5 扩增子", "引物匹配最好（平均覆盖 94–95%，没有低于 80% 的位点），支原体覆盖高；位点不重叠、扩增子短，读段能覆盖；人基因组脱靶经过检查和处理；有二聚体和 Tm 检查；理想属准确率最高或相当（95.35%，SNAP 95.30%）。", "没有 V5；寡核苷酸多、简并度高（18 条、118 个展开序列），Tm 范围 54.8–66.9 °C；没有实验验证；需要重建 SMURF 数据库；A1-F 对人基因组命中多。"]], ["方案", "优点", "缺点"])}
 
-<h2>七、限制</h2>
+<h2>八、限制</h2>
 <ul>
 <li>SNAP 的引物是文件里的序列，我按 E. coli 序列推位置；引物是怎么配对、产物多长、各引物浓度比例，文件里没有，我没有假设来源，只在表里标了“假设配对”。</li>
 <li>覆盖率按我们统一的序列匹配规则计算，不是实际 PCR 效率；数据库是 Greengenes 13_8 和 SILVA 128，不是 SNAP 用的 RDP 11.5；没有实验验证。</li>
