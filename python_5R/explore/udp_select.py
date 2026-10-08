@@ -62,10 +62,12 @@ def anneal(N, pool, seed, iters=60000):
     return best
 res = {}
 for N in (96, 48):
-    pool = range(n); allb = []
+    import os
+    pool = (list(S96) if (os.environ.get('NEST') and N == 48) else range(n)); allb = []
     for seed in range(10):
         allb.append(anneal(N, pool, seed))
     e, S = min(allb, key=lambda x: x[0]); en, conf, pen, sse = energy(S, N)
+    if N == 96: S96 = list(S)
     res[N] = dict(sel=[cand[i]['name'] for i in S], energy=e, conflicts=int(conf), balance_excess=float(pen), sse=float(sse), nB=int(isB[S].sum()), nC=int(isC[S].sum()))
     print(N, '能量 %.1f 冲突 %d 超容差 %.1f SSE %.1f B 级 %d C 级 %d' % (e, conf, pen, sse, isB[S].sum(), isC[S].sum()), flush=True)
 json.dump(dict(res=res, cand=cand), open(out, 'w'), ensure_ascii=False)
