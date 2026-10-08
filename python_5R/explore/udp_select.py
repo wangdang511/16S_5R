@@ -1,5 +1,5 @@
 """从 UDP0001–0384 中挑 48 / 96 组 i5/i7 内联索引。
-硬约束：i5 之间、i7 之间的 Levenshtein 编辑距离 ≥4；每个索引 GC 4–6/10；无同聚 ≥3；无近回文；每个位点（第 1–10 位）上 A/C/G/T 比例在 25%±6.25 个百分点内；
+硬约束：i5 之间、i7 之间的 Levenshtein 编辑距离 ≥4；每个索引 GC 4–6/10；无同聚 ≥3；无近回文；每个周期（第 1–10 位）上 GC 占比 40–60%，A+C 与 A+T（两通道信号）也在 40–60%，且 A/C/G/T 各 ≥15%；
         管内二聚体分级 A/B（C 级不用）。软目标：A 级尽量多、每位点碱基更均衡。
 用法：python3 udp_select.py <评估 pkl> <候选 tsv> <输出 json> [cross_min]   cross_min = i5 与 i7 之间的最小编辑距离（0 表示不约束）"""
 import sys, pickle, json, random, math, collections, itertools
@@ -32,11 +32,15 @@ np.fill_diagonal(ok, True)
 B = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
 M5 = np.array([[B[ch] for ch in c['i5']] for c in cand]); M7 = np.array([[B[ch] for ch in c['i7']] for c in cand])
 def balance(S, N):
-    tol = N / 4 * 0.25; pen = 0.0; sse = 0.0
+    """每个周期（位点）：GC 占比须在 40–60%，且 A/C/G/T 每种都 ≥15%（两通道化学里 A+C 与 A+T 也都在 40–60%）。pen = 越界量的平方和。"""
+    lo_gc, hi_gc = 0.40 * N, 0.60 * N; lo_b = 0.15 * N; pen = 0.0; sse = 0.0
     for M in (M5, M7):
         for pos in range(10):
-            cnt = np.bincount(M[S, pos], minlength=4)
-            dev = cnt - N / 4; sse += (dev ** 2).sum(); ex = np.maximum(0, np.abs(dev) - tol); pen += (ex ** 2).sum()
+            cnt = np.bincount(M[S, pos], minlength=4)      # A C G T
+            gc = cnt[1] + cnt[2]; red = cnt[0] + cnt[1]; green = cnt[0] + cnt[3]
+            for v in (gc, red, green): pen += max(0, lo_gc - v) ** 2 + max(0, v - hi_gc) ** 2
+            for v in cnt: pen += max(0, lo_b - v) ** 2
+            sse += ((cnt - N / 4) ** 2).sum()
     return pen, sse
 isB = np.array([c['tier'] == 'B' for c in cand])
 def energy(S, N):
