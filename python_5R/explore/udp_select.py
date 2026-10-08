@@ -19,8 +19,8 @@ for k, d in sorted(R['tubes'].items()):
     minH = float(d['H'][iu].min()); minE = float(d['E'].min())
     tier = 'A' if (minH >= -7 and minE >= -4.5) else 'B' if (minH >= -8.5 and minE >= -5.5) else 'C'
     cand.append(dict(name=d['name'], i5=d['i5'], i7=d['i7'], minH=minH, minE=minE, tier=tier, bad=float(d['bad'])))
-cand = [c for c in cand if c['tier'] != 'C']; n = len(cand)
-print('可用候选', n, collections.Counter(c['tier'] for c in cand))
+n = len(cand)
+print('候选', n, collections.Counter(c['tier'] for c in cand))
 L5 = np.zeros((n, n), int); L7 = np.zeros((n, n), int); X = np.zeros((n, n), int)
 for a in range(n):
     for b in range(n):
@@ -42,11 +42,12 @@ def balance(S, N):
             for v in cnt: pen += max(0, lo_b - v) ** 2
             sse += ((cnt - N / 4) ** 2).sum()
     return pen, sse
-isB = np.array([c['tier'] == 'B' for c in cand])
+isB = np.array([c['tier'] == 'B' for c in cand]); isC = np.array([c['tier'] == 'C' for c in cand])
+CW = {48: 100000.0, 96: 12.0}   # C 级的代价：48 组里基本禁用，96 组里允许但代价高
 def energy(S, N):
     S = list(S); sub = ok[np.ix_(S, S)]; conf = (~sub).sum() / 2
     pen, sse = balance(S, N)
-    return 1000 * conf + 200 * pen + 3 * isB[S].sum() + 0.5 * sse, conf, pen, sse
+    return 1000 * conf + 200 * pen + 3 * isB[S].sum() + CW[N] * isC[S].sum() + 0.5 * sse, conf, pen, sse
 def anneal(N, pool, seed, iters=60000):
     rnd = random.Random(seed); pool = list(pool); S = rnd.sample(pool, N); rest = [x for x in pool if x not in S]
     e = energy(S, N)[0]; T0 = 30.0
@@ -65,6 +66,6 @@ for N in (96, 48):
     for seed in range(6):
         allb.append(anneal(N, pool, seed))
     e, S = min(allb, key=lambda x: x[0]); en, conf, pen, sse = energy(S, N)
-    res[N] = dict(sel=[cand[i]['name'] for i in S], energy=e, conflicts=int(conf), balance_excess=float(pen), sse=float(sse), nB=int(isB[S].sum()))
-    print(N, '能量 %.1f 冲突 %d 超容差 %.1f SSE %.1f B 级 %d' % (e, conf, pen, sse, isB[S].sum()), flush=True)
+    res[N] = dict(sel=[cand[i]['name'] for i in S], energy=e, conflicts=int(conf), balance_excess=float(pen), sse=float(sse), nB=int(isB[S].sum()), nC=int(isC[S].sum()))
+    print(N, '能量 %.1f 冲突 %d 超容差 %.1f SSE %.1f B 级 %d C 级 %d' % (e, conf, pen, sse, isB[S].sum(), isC[S].sum()), flush=True)
 json.dump(dict(res=res, cand=cand), open(out, 'w'), ensure_ascii=False)
