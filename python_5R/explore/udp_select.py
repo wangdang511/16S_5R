@@ -2,7 +2,7 @@
 硬约束：i5 之间、i7 之间的 Levenshtein 编辑距离 ≥4；每个索引 GC 4–6/10；无同聚 ≥3；无近回文；每个周期（第 1–10 位）上 GC 占比 40–60%，A+C 与 A+T（两通道信号）也在 40–60%，且 A/C/G/T 各 ≥15%；
         管内二聚体分级 A/B（C 级不用）。软目标：A 级尽量多、每位点碱基更均衡。
 用法：python3 udp_select.py <评估 pkl> <候选 tsv> <输出 json> [cross_min]   cross_min = i5 与 i7 之间的最小编辑距离（0 表示不约束）"""
-import sys, pickle, json, random, math, collections, itertools
+import sys, os, pickle, json, random, math, collections, itertools
 import numpy as np
 pkl, tsv, out = sys.argv[1:4]; CROSS = int(sys.argv[4]) if len(sys.argv) > 4 else 0
 R = pickle.load(open(pkl, 'rb')); EX = R['EX']; N0 = len(EX)
@@ -47,7 +47,7 @@ CW = {48: 100000.0, 96: 100000.0}   # C 级的代价：48 组里基本禁用，9
 def energy(S, N):
     S = list(S); sub = ok[np.ix_(S, S)]; conf = (~sub).sum() / 2
     pen, sse = balance(S, N)
-    return 1000 * conf + 200 * pen + 3 * isB[S].sum() + CW[N] * isC[S].sum() + 0.5 * sse, conf, pen, sse
+    return 1000 * conf + 200 * pen + 3 * isB[S].sum() + CW[N] * isC[S].sum() + 1000 * max(0, isB[S].sum() - int(os.environ.get('MAXB', 999))) + 0.5 * sse, conf, pen, sse
 def anneal(N, pool, seed, iters=60000):
     rnd = random.Random(seed); pool = list(pool); S = rnd.sample(pool, N); rest = [x for x in pool if x not in S]
     e = energy(S, N)[0]; T0 = 30.0
@@ -61,9 +61,12 @@ def anneal(N, pool, seed, iters=60000):
         if e < best[0]: best = (e, list(S))
     return best
 res = {}
-for N in (96, 48):
+import os
+for N in ((48,) if (os.environ.get("ONLYA") or os.environ.get("ONLY48")) else (96, 48)):
     import os
-    pool = (list(S96) if (os.environ.get('NEST') and N == 48) else range(n)); allb = []
+    pool = (list(S96) if (os.environ.get('NEST') and N == 48) else range(n))
+    if os.environ.get('ONLYA'): pool = [i for i in range(n) if cand[i]['tier'] == 'A']
+    allb = []
     for seed in range(10):
         allb.append(anneal(N, pool, seed))
     e, S = min(allb, key=lambda x: x[0]); en, conf, pen, sse = energy(S, N)
