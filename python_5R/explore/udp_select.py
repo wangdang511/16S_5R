@@ -43,7 +43,7 @@ def balance(S, N):
             sse += ((cnt - N / 4) ** 2).sum()
     return pen, sse
 isB = np.array([c['tier'] == 'B' for c in cand]); isC = np.array([c['tier'] == 'C' for c in cand])
-CW = {48: 100000.0, 96: 12.0}   # C 级的代价：48 组里基本禁用，96 组里允许但代价高
+CW = {48: 100000.0, 96: 100000.0}   # C 级的代价：48 组里基本禁用，96 组里允许但代价高
 def energy(S, N):
     S = list(S); sub = ok[np.ix_(S, S)]; conf = (~sub).sum() / 2
     pen, sse = balance(S, N)
@@ -63,7 +63,7 @@ def anneal(N, pool, seed, iters=60000):
 res = {}
 for N in (96, 48):
     pool = range(n); allb = []
-    for seed in range(6):
+    for seed in range(10):
         allb.append(anneal(N, pool, seed))
     e, S = min(allb, key=lambda x: x[0]); en, conf, pen, sse = energy(S, N)
     res[N] = dict(sel=[cand[i]['name'] for i in S], energy=e, conflicts=int(conf), balance_excess=float(pen), sse=float(sse), nB=int(isB[S].sum()), nC=int(isC[S].sum()))
