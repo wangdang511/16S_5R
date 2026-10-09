@@ -23,10 +23,11 @@ B = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
 M = np.zeros((2, n, 10), int)
 for k in range(n):
     for p in range(10): M[0, k, p] = B[i5[k][p]]; M[1, k, p] = B[i7[k][p]]
+LO_, HI_, BM_ = float(os.environ.get('PLO', 0.4)), float(os.environ.get('PHI', 0.6)), float(os.environ.get('PBASE', 0.15))
 def pen_cnt(cnt, N):
     gc = cnt[..., 1] + cnt[..., 2]; red = cnt[..., 0] + cnt[..., 1]; green = cnt[..., 0] + cnt[..., 3]; v = 0.0
-    for x in (gc, red, green): v += (np.maximum(0, 0.4 * N - x) ** 2 + np.maximum(0, x - 0.6 * N) ** 2).sum()
-    return v + (np.maximum(0, 0.15 * N - cnt) ** 2).sum()
+    for x in (gc, red, green): v += (np.maximum(0, LO_ * N - x) ** 2 + np.maximum(0, x - HI_ * N) ** 2).sum()
+    return v + (np.maximum(0, BM_ * N - cnt) ** 2).sum()
 def run(N, pool, sd):
     rnd = random.Random(sd); pool = list(pool); S = rnd.sample(pool, N); inS = np.zeros(n, bool); inS[S] = True
     cnt = np.zeros((2, 10, 4), int)
