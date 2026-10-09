@@ -55,5 +55,5 @@ if __name__ == '__main__':
     with Pool(4) as p:
         for k, d in p.imap_unordered(tube, range(len(UDP))):
             res['tubes'][k] = d; print('完成', k + 1, d['name'], flush=True)
-            if len(res['tubes']) % 8 == 0: pickle.dump(res, open(out, 'wb'))
+            if len(res["tubes"]) % 4 == 0: pickle.dump(res, open(out, 'wb'))
     pickle.dump(res, open(out, 'wb')); print('全部完成', flush=True)
