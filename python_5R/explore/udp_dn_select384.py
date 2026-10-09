@@ -42,7 +42,7 @@ def anneal(N, pool, sd, iters):
 res = {}
 for N, nested in ((96, False), (48, True)):
     pool = range(n) if not nested else res[96]['idx']
-    allb = [anneal(N, pool, seed + s, 250000 if N == 96 else 120000) for s in range(4)]
+    allb = [anneal(N, pool, seed + s, 150000 if N == 96 else 80000) for s in range(3)]
     e, S = min(allb, key=lambda x: x[0]); en, conf = energy(S, N)
     res[N] = dict(idx=S, energy=e, conflicts=int(conf), pen=float(pen(S, N)), tiers={t: int((tier[S] == t).sum()) for t in 'ABC'})
     print(N, res[N]['tiers'], '冲突', conf, '周期越界', res[N]['pen'], flush=True)
