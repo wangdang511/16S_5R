@@ -14,9 +14,11 @@ for k in range(1, n + 1):
     d = tubes[k]; h = float(d['H'][iu].min()); e = float(d['E'].min())
     tier.append('A' if (h >= -7 and e >= -4.5) else 'B' if (h >= -8.5 and e >= -5.5) else 'C'); mh.append(h); me.append(e); i5.append(d['i5']); i7.append(d['i7'])
 tier = np.array(tier); mh = np.array(mh); me = np.array(me)
-print('分级', {t: int((tier == t).sum()) for t in 'ABC'}, flush=True)
 import os
-cst = np.where(tier == 'A', 0.0, np.where(tier == 'B', 3.0, float(os.environ.get('CC', 30)))) + 0.2 * np.maximum(0, -(mh + 7)) + 0.2 * np.maximum(0, -(me + 4.5))
+own = np.load(os.environ['OWN']) if os.environ.get('OWN') else np.zeros(n, bool)
+print('分级', {t: int((tier == t).sum()) for t in 'ABC'}, '管内自冲突', int(own.sum()), flush=True)
+import os
+cst = 1e6 * own + np.where(tier == 'A', 0.0, np.where(tier == 'B', 3.0, float(os.environ.get('CC', 30)))) + 0.2 * np.maximum(0, -(mh + 7)) + 0.2 * np.maximum(0, -(me + 4.5))
 B = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
 M = np.zeros((2, n, 10), int)
 for k in range(n):
@@ -35,6 +37,7 @@ def run(N, pool, sd):
     conf = int(cc[S].sum() / 2); pen = pen_cnt(cnt, N); csum = cst[S].sum(); E = 1000 * conf + 1000 * pen + csum; best = (E, list(S))
     poolarr = np.array(pool)
     for it in range(iters):
+        if it % 300000 == 0 and it: json.dump(dict(N=N, it=it, E=best[0], idx=best[1]), open(out + f'.part{N}_{sd}', 'w'))
         Tm = 60.0 * (1 - it / iters) + 0.05; i = rnd.randrange(N); a = S[i]; b = int(poolarr[rnd.randrange(len(poolarr))])
         if inS[b]: continue
         dconf = int(cc[b] - T[b, a] - cc[a])
