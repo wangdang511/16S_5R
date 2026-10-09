@@ -10,7 +10,15 @@ from rapidfuzz.distance import Levenshtein
 pkl, out, DMIN, RCMIN, HMIN, EMIN, seed = sys.argv[1:8]; DMIN, RCMIN, HMIN, EMIN, seed = int(DMIN), int(RCMIN), float(HMIN), float(EMIN), int(seed)
 ITERS = int(sys.argv[8]) if len(sys.argv) > 8 else 300000
 rc = lambda s: s[::-1].translate(str.maketrans('ACGT', 'TGCA'))
-cand = [c for c in pickle.load(open(pkl, 'rb')) if c[1] >= HMIN and c[2] >= EMIN]
+ADAPT = ['AGATCGGAAGAGC', 'CTGTCTCTTATACACATCT', 'AGATGTGTATAAGAGACAG', 'AATGATACGGCGACCACCGAGATCTACAC', 'CAAGCAGAAGACGGCATACGAGAT', 'TCGTCGGCAGCGTC', 'GTCTCGTGGGCTCGG']
+K6 = set()
+for a in ADAPT:
+    for t in (a, rc(a)): K6 |= {t[i:i + 6] for i in range(len(t) - 5)}
+def ok2(c):
+    s = c[0]
+    if 'GGGG' in s or (s[0] == 'G' and s[1] == 'G'): return False
+    return not any(s[i:i + 6] in K6 for i in range(5))
+cand = [c for c in pickle.load(open(pkl, 'rb')) if c[1] >= HMIN and c[2] >= EMIN and ok2(c)]
 seqs = [c[0] for c in cand]; n = len(seqs); print('候选', n, flush=True)
 D = cdist(seqs, seqs, scorer=Levenshtein.distance, dtype=np.uint8, workers=4)
 Drc = cdist(seqs, [rc(s) for s in seqs], scorer=Levenshtein.distance, dtype=np.uint8, workers=4)
