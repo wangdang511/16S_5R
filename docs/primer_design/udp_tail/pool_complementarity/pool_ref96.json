@@ -1,0 +1,122 @@
+{
+ "头尾 i5_a×i7_b（含 a=b 锅柄）": {
+  "n": 9216,
+  "lcs_hist": {
+   "1": 50,
+   "2": 3465,
+   "3": 4112,
+   "4": 1256,
+   "5": 266,
+   "6": 45,
+   "7": 6,
+   "10": 16
+  },
+  "worst_dg60": -6.618858051618591,
+  "worst_dg60_pair": [
+   "UDP0004:i5",
+   "UDP0030:i7",
+   "TGCCTGGTGG",
+   "CCACCAGGCA"
+  ],
+  "worst_dg72": -4.224219890488239,
+  "max_lcs": 10,
+  "max_lcs_pair": [
+   "UDP0004:i5",
+   "UDP0030:i7",
+   "TGCCTGGTGG",
+   "CCACCAGGCA"
+  ],
+  "n_dg60_le6": 2,
+  "n_dg60_le4": 15,
+  "n_dg60_le2": 388
+ },
+ "锅柄（仅 a=b）i5_a×i7_a": {
+  "n": 96,
+  "lcs_hist": {
+   "1": 1,
+   "2": 36,
+   "3": 35,
+   "4": 18,
+   "5": 5,
+   "6": 1
+  },
+  "worst_dg60": -2.348474350545075,
+  "worst_dg60_pair": [
+   "UDP0063:i5",
+   "UDP0063:i7",
+   "TTGGCTCCGC",
+   "ATTGCGCGGT"
+  ],
+  "worst_dg72": -1.0206055433940928,
+  "max_lcs": 6,
+  "max_lcs_pair": [
+   "UDP0060:i5",
+   "UDP0060:i7",
+   "ACAGTTCCAG",
+   "TTACCTGGAA"
+  ],
+  "n_dg60_le6": 0,
+  "n_dg60_le4": 0,
+  "n_dg60_le2": 1
+ },
+ "异源双链 i5_a×i5_b": {
+  "n": 9120,
+  "lcs_hist": {
+   "1": 44,
+   "2": 3322,
+   "3": 4232,
+   "4": 1232,
+   "5": 246,
+   "6": 42,
+   "7": 2
+  },
+  "worst_dg60": -5.310292250904029,
+  "worst_dg60_pair": [
+   "UDP0047:i5",
+   "UDP0012:i5",
+   "CGGTGGCGAA",
+   "AGCGCCACAC"
+  ],
+  "worst_dg72": -3.2647377169428946,
+  "max_lcs": 7,
+  "max_lcs_pair": [
+   "UDP0005V3:i5",
+   "UDP0038:i5",
+   "TCCATCCGAG",
+   "ACGGATGGTA"
+  ],
+  "n_dg60_le6": 0,
+  "n_dg60_le4": 6,
+  "n_dg60_le2": 334
+ },
+ "异源双链 i7_a×i7_b": {
+  "n": 9120,
+  "lcs_hist": {
+   "1": 62,
+   "2": 3602,
+   "3": 3964,
+   "4": 1200,
+   "5": 256,
+   "6": 32,
+   "7": 4
+  },
+  "worst_dg60": -5.26740080072455,
+  "worst_dg60_pair": [
+   "UDP0034:i7",
+   "UDP0064:i7",
+   "TACGCGGCTG",
+   "TGGCGCGAAC"
+  ],
+  "worst_dg72": -3.3705821735557038,
+  "max_lcs": 7,
+  "max_lcs_pair": [
+   "UDP0022:i7",
+   "UDP0063:i7",
+   "GAGCGCAATA",
+   "ATTGCGCGGT"
+  ],
+  "n_dg60_le6": 0,
+  "n_dg60_le4": 12,
+  "n_dg60_le2": 395
+ }
+}
