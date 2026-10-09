@@ -49,20 +49,23 @@ def energy(S, N):
     pen, sse = balance(S, N)
     return 1000 * conf + 200 * pen + 3 * isB[S].sum() + CW[N] * isC[S].sum() + 1000 * max(0, isB[S].sum() - int(os.environ.get('MAXB', 999))) + 0.5 * sse, conf, pen, sse
 def anneal(N, pool, seed, iters=60000):
-    rnd = random.Random(seed); pool = list(pool); S = rnd.sample(pool, N); rest = [x for x in pool if x not in S]
+    rnd = random.Random(seed); pool = list(pool)
+    fixed = [i for i, c in enumerate(cand) if c['name'] in FIX]; nf = len(fixed)
+    S = fixed + rnd.sample([x for x in pool if x not in fixed], N - nf); rest = [x for x in pool if x not in S]
     e = energy(S, N)[0]; T0 = 30.0
     best = (e, list(S))
     for it in range(iters):
         T = T0 * (1 - it / iters) + 0.05
-        i = rnd.randrange(N); j = rnd.randrange(len(rest)); old = S[i]; S[i] = rest[j]
+        i = rnd.randrange(nf, N); j = rnd.randrange(len(rest)); old = S[i]; S[i] = rest[j]
         e2 = energy(S, N)[0]
         if e2 <= e or rnd.random() < math.exp((e - e2) / T): rest[j] = old; e = e2
         else: S[i] = old
         if e < best[0]: best = (e, list(S))
     return best
+FIX = set(json.load(open(os.environ['FIX']))['res']['48']['sel']) if os.environ.get('FIX') else set()
 res = {}
 import os
-for N in ((48,) if (os.environ.get("ONLYA") or os.environ.get("ONLY48")) else (96, 48)):
+for N in ((96,) if os.environ.get("ONLY96") else (48,) if (os.environ.get("ONLYA") or os.environ.get("ONLY48")) else (96, 48)):
     import os
     pool = (list(S96) if (os.environ.get('NEST') and N == 48) else range(n))
     if os.environ.get('ONLYA'): pool = [i for i in range(n) if cand[i]['tier'] == 'A']
