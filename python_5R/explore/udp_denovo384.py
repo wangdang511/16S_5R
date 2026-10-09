@@ -35,6 +35,7 @@ if __name__ == '__main__':
     print('单条规则通过', len(allc), flush=True)
     import os
     if os.environ.get('ORDER') != 'lex': rnd.shuffle(allc)
+    elif os.environ.get('SYM'): tb = str.maketrans(os.environ['SYM'], 'ACGT'); allc.sort(key=lambda x: x.translate(tb))
     S = []; Src = []
     BS = 3000
     for b0 in range(0, len(allc), BS):

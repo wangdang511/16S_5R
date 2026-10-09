@@ -29,15 +29,15 @@ if __name__ == '__main__':
     for k, s in enumerate(slot):
         g = k // NG
         for pos in range(10): cnt[g, pos, M[s, pos]] += 1
-    gp = np.array([pen(cnt[g]) for g in range(G)]); tot = gp.sum() * 100 + cost[slot].sum()
+    gp = np.array([pen(cnt[g]) for g in range(G)]); tot = gp.sum() * 1000 + cost[slot].sum()
     best = (tot, list(slot), list(unused)); print('起始', gp.sum(), flush=True)
     for it in range(ITERS):
-        Tm = 15.0 * (1 - it / ITERS) + 0.02
+        Tm = 40.0 * (1 - it / ITERS) + 0.02
         i = rnd.randrange(G * NG); gi = i // NG
         if rnd.random() < 0.5 and unused:                       # 与未用序列交换
             j = rnd.randrange(len(unused)); a, b = slot[i], unused[j]
             for pos in range(10): cnt[gi, pos, M[a, pos]] -= 1; cnt[gi, pos, M[b, pos]] += 1
-            ng = pen(cnt[gi]); dE = (ng - gp[gi]) * 100 + cost[b] - cost[a]
+            ng = pen(cnt[gi]); dE = (ng - gp[gi]) * 1000 + cost[b] - cost[a]
             if dE <= 0 or rnd.random() < math.exp(-dE / Tm): slot[i] = b; unused[j] = a; gp[gi] = ng; tot += dE
             else:
                 for pos in range(10): cnt[gi, pos, M[a, pos]] += 1; cnt[gi, pos, M[b, pos]] -= 1
@@ -47,7 +47,7 @@ if __name__ == '__main__':
             a, b = slot[i], slot[k]
             for pos in range(10):
                 cnt[gi, pos, M[a, pos]] -= 1; cnt[gi, pos, M[b, pos]] += 1; cnt[gk, pos, M[b, pos]] -= 1; cnt[gk, pos, M[a, pos]] += 1
-            n1, n2 = pen(cnt[gi]), pen(cnt[gk]); dE = (n1 + n2 - gp[gi] - gp[gk]) * 100
+            n1, n2 = pen(cnt[gi]), pen(cnt[gk]); dE = (n1 + n2 - gp[gi] - gp[gk]) * 1000
             if dE <= 0 or rnd.random() < math.exp(-dE / Tm): slot[i], slot[k] = b, a; gp[gi], gp[gk] = n1, n2; tot += dE
             else:
                 for pos in range(10):
