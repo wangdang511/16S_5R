@@ -1,0 +1,228 @@
+<title>自建 UDP 筛选流程</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 布局：单栏长文，左侧窄时间线，结果用堆叠条对比；等级色只用于 A/B/C */
+:root{
+  --bg:#f3f6f7; --panel:#ffffff; --fg:#14232b; --muted:#566972; --line:#d5dfe3;
+  --accent:#0b6e7f; --accentbg:#e1f0f3;
+  --a:#2f8f5b; --b:#d79a1f; --c:#c4473a; --abg:#e3f3ea; --bbg:#fbf0d6; --cbg:#f8e1de;
+  --code:#e9eff1;
+  --sans:"Public Sans",system-ui,-apple-system,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1a1f; --panel:#16252c; --fg:#e3edf0; --muted:#97aab2; --line:#2a3d46;
+  --accent:#58c2d4; --accentbg:#173640;
+  --a:#5fcf93; --b:#f0b84a; --c:#ee7d70; --abg:#16372a; --bbg:#3b2f13; --cbg:#41201c; --code:#1d3039; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1a1f; --panel:#16252c; --fg:#e3edf0; --muted:#97aab2; --line:#2a3d46;
+  --accent:#58c2d4; --accentbg:#173640;
+  --a:#5fcf93; --b:#f0b84a; --c:#ee7d70; --abg:#16372a; --bbg:#3b2f13; --cbg:#41201c; --code:#1d3039; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.7;padding-inline:16px;padding-block:28px 64px}
+.wrap{max-width:860px;margin-inline:auto;display:flex;flex-direction:column;gap:36px}
+h1{font-size:clamp(26px,5vw,36px);line-height:1.2;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font-size:21px;margin:0 0 14px;text-wrap:balance}
+h3{font-size:16px;margin:0 0 6px}
+p{margin:0 0 10px;max-width:68ch}
+.lead{color:var(--muted);font-size:16px;max-width:64ch}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px}
+code,.mono{font-family:var(--mono);font-size:.88em}
+code{background:var(--code);padding:1px 5px;border-radius:3px}
+section{display:flex;flex-direction:column}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px 18px;min-width:0}
+.kpis{display:flex;flex-wrap:wrap;gap:12px}
+.kpi{flex:1 1 150px;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.kpi b{display:block;font-size:26px;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi span{font-size:13px;color:var(--muted)}
+.tag{display:inline-block;font-weight:700;font-size:12px;padding:1px 8px;border-radius:3px}
+.tA{background:var(--abg);color:var(--a)}.tB{background:var(--bbg);color:var(--b)}.tC{background:var(--cbg);color:var(--c)}
+/* 时间线：顺序本身就是信息（每一阶段的输出是下一阶段的输入） */
+ol.stages{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0;border-left:2px solid var(--line);margin-left:12px}
+ol.stages li{position:relative;padding:0 0 22px 24px}
+ol.stages li::before{content:attr(data-n);position:absolute;left:-14px;top:0;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--bg);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+ol.stages li.fix::before{background:var(--b)}
+.io{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);margin-top:4px}
+.io b{color:var(--fg);font-weight:600}
+/* 堆叠条 */
+.bars{display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:minmax(120px,210px) 1fr;gap:6px 12px;align-items:center}
+.row .lab{font-size:13px;line-height:1.4}
+.row .lab small{display:block;color:var(--muted)}
+.bar{display:flex;height:26px;border-radius:3px;overflow:hidden;background:var(--line)}
+.bar i{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;min-width:0;overflow:hidden}
+.bar i.A{background:var(--a)}.bar i.B{background:var(--b)}.bar i.C{background:var(--c)}
+.bar i.B{color:#201603}
+.group{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+@media (max-width:560px){.row{grid-template-columns:1fr}}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+.scroll table{min-width:520px}
+.note{border-left:4px solid var(--accent);background:var(--accentbg);padding:12px 14px;border-radius:0 6px 6px 0}
+.warn{border-left:4px solid var(--b);background:var(--bbg);padding:12px 14px;border-radius:0 6px 6px 0}
+ul{margin:0 0 10px;padding-left:20px;max-width:68ch}li{margin-bottom:4px}
+.foot{font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">16S 多扩增子引物池 · 内联 UDP 条形码</div>
+  <h1>自建 UDP 筛选流程</h1>
+  <p class="lead">从 960 条自建序列出发，选出 96 对（前 48 对为核心 48 组），最后一版整管实测没有 C 级。本页记录每个阶段做了什么、C 级是怎么消失的，以及 A 级还能不能再提高。</p>
+</header>
+
+<section>
+  <div class="kpis">
+    <div class="kpi"><b>63 / 33 / 0</b><span>96 对实测 A / B / C</span></div>
+    <div class="kpi"><b>33 / 15 / 0</b><span>核心 48 实测 A / B / C</span></div>
+    <div class="kpi"><b>86 / 126 / 159</b><span>Illumina 371 对原配对（未挑选）</span></div>
+    <div class="kpi"><b>81 / 96</b><span>只去掉一对引物的相互作用后，A 级上限（假设推算）</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>评价的是什么</h2>
+  <p>每个管（一个 i5 + 一个 i7，加上 33 条寡核苷酸展开成的 198 条引物）在 58 °C、50 mM Na⁺、2 mM Mg²⁺、250 nM 下，用 primer3 算全部两两异源二聚体 ΔG 和 3′端稳定性。</p>
+  <div class="scroll"><table>
+    <tr><th>等级</th><th>全局二聚体最差 ΔG</th><th>3′端最差 ΔG</th></tr>
+    <tr><td><span class="tag tA">A</span></td><td>≥ −7 kcal/mol</td><td>≥ −4.5</td></tr>
+    <tr><td><span class="tag tB">B</span></td><td>≥ −8.5</td><td>≥ −5.5</td></tr>
+    <tr><td><span class="tag tC">C</span></td><td colspan="2">其余</td></tr>
+  </table></div>
+  <p style="margin-top:10px" class="foot">这些阈值是我定的经验阈值。没有无尾巴基线以外的实验标定（无尾巴时最差约 −5.7 / −3.8）。</p>
+</section>
+
+<section>
+  <h2>分阶段流程</h2>
+  <ol class="stages">
+    <li data-n="0">
+      <h3>基线：Illumina 384 对原配对</h3>
+      <p>先把 Illumina UDP 原样配对评一遍，作为对照。371 个有效管里 A 86（23%）、B 126、C 159（43%）。挑选后的 96 管可以做到 0 个 C，A 约 34–40 个。</p>
+    </li>
+    <li data-n="1">
+      <h3>第一阶段：960 条序列各自评估</h3>
+      <p>自建 960 条 10 nt 序列（U001–U960，每条都可当 i5 或 i7）。单条规则：GC 4–6、无 ≥3 同聚物、无二核苷酸重复 ≥3 次、无 GGGG、不含接头 6-mer、非回文，且与 Illumina 的 384 对不同。再分别和上游或下游引物算单侧二聚体和发夹。</p>
+      <div class="io"><span>输入 <b>960 条序列 + 33 条寡核苷酸</b></span><span>输出 <b>每条序列的 FF / RR / 发夹代价</b></span></div>
+    </li>
+    <li data-n="2">
+      <h3>第二阶段：144 个 i5 + 144 个 i7 候选池</h3>
+      <p>在池内就保证：任意两条编辑距离 ≥4；跨类（i5 对 rc(i7)）反向互补编辑距离 ≥3；每周期组成可达标。多留一些冗余，给后面挑选空间。</p>
+      <div class="io"><span>输入 <b>960 条 + 单条代价</b></span><span>输出 <b>144 × 144 候选池</b></span></div>
+    </li>
+    <li data-n="3">
+      <h3>第三阶段：正向 × 反向的热点相互作用</h3>
+      <p>i5 的影响只在正向引物之间，i7 只在反向引物之间，真正依赖配对的是 i5 × i7 的正反向相互作用。只有约 6.5% 的引物对会出问题，所以只对“热点引物对”（先 38 对，后补到 57 对）精确计算，20736 个组合，每个约 1.24 秒，差到不可能是 A/B 时提前停止。</p>
+      <div class="io"><span>输入 <b>候选池 + 热点引物对</b></span><span>输出 <b>每个 i5 × i7 组合的预测等级</b></span></div>
+    </li>
+    <li data-n="4">
+      <h3>第四阶段：选 96 对并配对</h3>
+      <p>模拟退火。能量 = 等级代价（A 0、B 3、C 30）加上每周期配色越界的惩罚（权重 1000）。核心 48 的权重翻倍，并且核心 48 自己也要满足每周期组成。</p>
+      <div class="io"><span>输出 <b>96 对预测等级</b></span></div>
+    </li>
+    <li data-n="5">
+      <h3>第五阶段：整管实测</h3>
+      <p>对选出的每一个管算完整的 198 × 198 异源二聚体和 3′端矩阵，包括热点代理没有覆盖的引物对。这一步才给出可以信的等级。</p>
+    </li>
+    <li data-n="6" class="fix">
+      <h3>修复循环：按实测改</h3>
+      <p>每一轮实测都发现代理漏掉的管。修法有三种，按顺序用：</p>
+      <ul>
+        <li><b>实测覆盖</b>：已测过的组合直接用实测等级代替预测，后面的重选不再碰坏的。</li>
+        <li><b>禁用序列</b>：如果某条 i7 在几乎所有搭配里都是 C（例如 U864 与反向引物 A4-R.2、A5-R.1 的 3′端稳定性是 −5.78），整条禁用。</li>
+        <li><b>换配对</b>：每周期配色只取决于 i5 集合和 i7 集合，和谁配谁无关。所以 C 管可以和同组里别的管互换 i7，序列集合不变，约束不受影响。每个 C 管试 8 个交换对象，把交换后的两个管都实测，挑两个都不低于 B 的。</li>
+      </ul>
+    </li>
+    <li data-n="7">
+      <h3>脱靶</h3>
+      <p>尾巴在 5′端，不会产生新的 3′种子位点。对基因特异部分 ≤5 个错配的已知位点，加上 5′侧 10 nt 的基因组侧翼，重新算带尾巴的全长错配数。</p>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>一开始有 C，为什么最后没有了</h2>
+  <div class="panel bars">
+    <div class="group">Illumina 原配对</div>
+    <div class="row"><div class="lab">371 个管，未挑选<small>实测</small></div><div class="bar"><i class="A" style="flex:86">86</i><i class="B" style="flex:126">126</i><i class="C" style="flex:159">159</i></div></div>
+    <div class="group">第 1 轮 · 100 × 100 子集</div>
+    <div class="row"><div class="lab">预测<small>96 对</small></div><div class="bar"><i class="A" style="flex:69">69</i><i class="B" style="flex:27">27</i></div></div>
+    <div class="row"><div class="lab">实测<small>漏掉的引物对</small></div><div class="bar"><i class="A" style="flex:55">55</i><i class="B" style="flex:38">38</i><i class="C" style="flex:3">3</i></div></div>
+    <div class="group">第 2 轮 · 144 × 144 全量</div>
+    <div class="row"><div class="lab">预测</div><div class="bar"><i class="A" style="flex:66">66</i><i class="B" style="flex:30">30</i></div></div>
+    <div class="row"><div class="lab">实测</div><div class="bar"><i class="A" style="flex:61">61</i><i class="B" style="flex:33">33</i><i class="C" style="flex:2">2</i></div></div>
+    <div class="row"><div class="lab">换配对后<small>1 个 C 修不掉（U864）</small></div><div class="bar"><i class="A" style="flex:61">61</i><i class="B" style="flex:34">34</i><i class="C" style="flex:1">1</i></div></div>
+    <div class="group">第 3 轮 · 实测覆盖 + 禁用 U864</div>
+    <div class="row"><div class="lab">预测</div><div class="bar"><i class="A" style="flex:66">66</i><i class="B" style="flex:30">30</i></div></div>
+    <div class="row"><div class="lab">实测</div><div class="bar"><i class="A" style="flex:63">63</i><i class="B" style="flex:31">31</i><i class="C" style="flex:2">2</i></div></div>
+    <div class="row"><div class="lab"><b>换配对后（最终）</b></div><div class="bar"><i class="A" style="flex:63">63</i><i class="B" style="flex:33">33</i></div></div>
+  </div>
+
+  <h3 style="margin-top:18px">三个原因</h3>
+  <ul>
+    <li><b>C 管是局部问题</b>。每个 C 管通常由一两个具体的引物对（例如一条 i7 与某条反向引物）造成，不是整个池都差。所以可以绕开：禁用一条 i7，或换一下配对。</li>
+    <li><b>换配对不改变任何序列约束</b>。每周期配色、编辑距离、反向互补只取决于序列集合。把 R004 的 i7 和另一个管互换后，两个管都实测不低于 B，约束照旧满足。</li>
+    <li><b>代价函数把 C 压得很重</b>（C 为 30，B 为 3），重选时 C 几乎不会被选中；加上“实测覆盖”后，已知的坏组合不会再被选回。</li>
+  </ul>
+
+  <div class="warn" style="margin-top:12px">
+    <p><b>要注意的限制</b></p>
+    <p>“没有 C”是按同一个指标反复挑选出来的，不是方法本身让 C 不可能出现。证据是：每一轮重选后实测仍然出现 1–3 个 C，预测一直比实测乐观。最终这 96 管没有被一个独立的指标验证过，只是在我定的这套阈值下达标。</p>
+  </div>
+</section>
+
+<section>
+  <h2>用同样的方案，A 级还能提高多少</h2>
+  <p>我统计了最终 96 管里 33 个 B 管为什么是 B。</p>
+  <div class="scroll"><table>
+    <tr><th>原因</th><th class="n">管数</th><th>主要来源</th></tr>
+    <tr><td>3′端稳定性 &lt; −4.5</td><td class="n">25</td><td>其中 <b>20 个</b>来自同一对引物：<code>16S-A2-R.1</code> × <code>16S-A6-F.2</code></td></tr>
+    <tr><td>全局二聚体 &lt; −7</td><td class="n">10</td><td>A4-R.1 / A4-R.5s × A5-F.1 各 3 个，其余分散</td></tr>
+  </table></div>
+  <p class="foot" style="margin-top:6px">一个管可以同时属于两类，所以管数相加不等于 33。</p>
+
+  <div class="panel bars" style="margin-top:14px">
+    <div class="row"><div class="lab">现状<small>实测</small></div><div class="bar"><i class="A" style="flex:63">63</i><i class="B" style="flex:33">33</i></div></div>
+    <div class="row"><div class="lab">假设 A2-R.1 × A6-F.2 的 3′端相互作用不存在</div><div class="bar"><i class="A" style="flex:81">81</i><i class="B" style="flex:15">15</i></div></div>
+    <div class="row"><div class="lab">再假设 A4-R × A5-F.1 的相互作用不存在</div><div class="bar"><i class="A" style="flex:83">83</i><i class="B" style="flex:13">13</i></div></div>
+  </div>
+  <p class="foot" style="margin-top:6px">这两行是把那些矩阵项置零后重新分级的“假设推算”，不是实测。真实引物仍然存在这个相互作用，不会因为评估里去掉就消失。</p>
+
+  <div class="note" style="margin-top:12px">
+    <p><b>结论</b></p>
+    <p>继续用同样的“选择 → 实测 → 修复”循环，A 级只会小幅增长：第 2 轮到第 3 轮，A 从 61 升到 63。真正的上限由那一对引物决定。这个引物对在 <code>16S-A2-R.1</code> 无尾巴时的 3′端 ΔG 只有约 −0.2，是尾巴引入的，在 96 管里有 23 管低于 −4.5。</p>
+    <p>最有效的做法是改引物设计而不是继续挑条形码：</p>
+  </div>
+  <ul style="margin-top:10px">
+    <li><b>替换或微调 <code>16S-A2-R.1</code> 或 <code>16S-A6-F.2</code> 的特异部分</b>（它们的 3′端要避开与尾巴互补）。这会改变引物池，需要重新评估这两条引物和其余 196 条的全部相互作用，以及扩增覆盖、Tm 和脱靶。预计 A 级可从 63 向 80 左右提高，要重算后才知道。</li>
+    <li><b>让第三阶段把这一对的 3′端项单独作为硬约束</b>，在选 i5 / i7 时直接排除会让它低于 −4.5 的尾巴。代价是候选池会变小，每周期配色更难满足，可能需要把池扩大。</li>
+    <li><b>扩大候选池</b>（比如 144 → 200）：A 的上限不会明显变，因为瓶颈在这对引物；而计算量约 2 倍，在这个沙箱里要十几个小时。</li>
+    <li><b>放宽阈值</b>能让 A 变多，但那只是改了标签，不是改进。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>脱靶</h2>
+  <div class="scroll"><table>
+    <tr><th>基因组</th><th class="n">已知命中</th><th class="n">无尾巴 ≤2 错配</th><th class="n">带尾巴 ≤2</th><th class="n">带尾巴 ≤3（总数 / 单管最多）</th><th class="n">带尾巴 ≤4（总数 / 单管最多）</th></tr>
+    <tr><td>人 hg19</td><td class="n">326,727</td><td class="n">516</td><td class="n">0</td><td class="n">7 / 2（5 管有）</td><td class="n">58 / 10（34 管有）</td></tr>
+    <tr><td>猪 susScr3</td><td class="n">347,653</td><td class="n">979</td><td class="n">0</td><td class="n">3 / 1（3 管有）</td><td class="n">57 / 5（32 管有）</td></tr>
+  </table></div>
+  <p class="foot" style="margin-top:6px">这里只在已知的特异部分命中（≤5 个错配）里加上尾巴比较，不是对整个基因组重新做全长搜索。</p>
+</section>
+
+<section>
+  <h2>没有做的事</h2>
+  <ul>
+    <li><b>没有实验验证</b>。A / B / C 不等于测序性能。Illumina 序列有长期的使用积累，自建序列没有；你之前测过 UDP0017 测序量低，这类问题我的评估看不到。</li>
+    <li><b>没有评估真实接头</b>，只评估了尾巴加特异部分。</li>
+    <li>和 Illumina 的 A 级比较不是同条件对比：自建从 960 条里挑，且只对跨类反向互补放宽到 ≥3；Illumina 是固定的 384 对。</li>
+    <li>建议做一个小对照：同一个样品、多个不同条形码，看测序量差异，再决定要不要继续优化。</li>
+  </ul>
+  <p class="foot">代码和数据：<code>python_5R/explore/udp960_*.py</code>、<code>docs/primer_design/udp_denovo960/</code>。最终文件：<code>udp_denovo960_pairs96_final_v2.xlsx</code>。</p>
+</section>
+
+</div>
