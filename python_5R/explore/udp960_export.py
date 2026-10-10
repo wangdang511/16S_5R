@@ -8,7 +8,7 @@ from rapidfuzz.distance import Levenshtein
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-pj, outx, outc = sys.argv[1:4]; pkls = sys.argv[4:]
+pj, outx, outc = sys.argv[1:4]; pkls = sys.argv[4:]; import os; PFX = os.environ.get('TUBE_PFX', 'P')
 D = '/home/user/16S_5R/docs/primer_design/'
 pairs = json.load(open(pj))['pairs']; rc = lambda s: s[::-1].translate(str.maketrans('ACGT', 'TGCA'))
 meas = {}
@@ -18,7 +18,7 @@ for p in pkls:
         h = float(t['H'][iu].min()); e = float(t['E'].min())
         meas[t['name']] = dict(minH=h, minE=e, hp=float(t['hg'].min()), bad=float(t['bad']), tier='A' if (h >= -7 and e >= -4.5) else 'B' if (h >= -8.5 and e >= -5.5) else 'C')
 def info(k):
-    nm = f'P{k + 1:03d}'
+    nm = f'{PFX}{k + 1:03d}'
     if nm in meas: m = meas[nm]; return dict(tier=m['tier'], H=m['minH'], E=m['minE'], hp=m['hp'], bad=m['bad'], src='实测')
     p = pairs[k]; return dict(tier=p['tier'], H=p['H'], E=p['E'], hp=None, bad=None, src='预测')
 i5 = [p['seq5'] for p in pairs]; i7 = [p['seq7'] for p in pairs]
