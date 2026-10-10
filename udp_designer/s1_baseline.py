@@ -82,9 +82,13 @@ if __name__ == "__main__":
     # delta 模式：记录不带尾巴就超过 A 阈值的展开引物对的超标量（≤0），后面所有步骤按“额外恶化”计分
     off = {}
     if th.get("mode", "delta") == "delta":
-        bi, bj = np.where((H0 < th["A_H"]) | (Es < th["A_E"]))
+        # 连续规则：有效阈值 = min(绝对阈值, 无尾巴值 − grace)。无尾巴值离阈值不到 grace 的引物对也给余量，
+        # 否则刚好在阈值内侧的引物对被任何尾巴的通用稳定化（≈0.4 kcal）推过线，A 级在大 panel 上变得不可达。
+        g = th.get("delta_grace", 0.5)
+        bi, bj = np.where((H0 < th["A_H"] + g) | (Es < th["A_E"] + g))
         for i, j in zip(bi, bj):
-            g = th.get("delta_grace", 1.0); o = (min(0.0, float(H0[i, j]) - th["A_H"]) - g, min(0.0, float(Es[i, j]) - th["A_E"]) - g); off[(ex[i][2], ex[j][2])] = o; off[(ex[j][2], ex[i][2])] = o
+            o = (min(0.0, float(H0[i, j]) - th["A_H"] - g), min(0.0, float(Es[i, j]) - th["A_E"] - g))
+            if o != (0.0, 0.0): off[(ex[i][2], ex[j][2])] = o; off[(ex[j][2], ex[i][2])] = o
     pickle.dump(off, open(wp(args.work, "offsets.pkl"), "wb"))
     print(f"无尾巴基线最差：全局 {h0:.2f}，3′端 {e0:.2f} kcal/mol")
     print("采用的阈值：", {k: th[k] for k in ("A_H", "A_E", "B_H", "B_E")}, "（绝对阈值" + (" 已按基线放宽）" if (th['A_H'], th['A_E']) != (cfg['tier']['A_H'], cfg['tier']['A_E']) else " 未改动）"))

@@ -8,7 +8,8 @@ DEFAULT_CFG = {
     "tier": {"A_H": -7.0, "A_E": -4.5, "B_H": -8.5, "B_E": -5.5,    # H=全局异源二聚体最差ΔG，E=3′端锚定最差ΔG（kcal/mol）
              "mode": "delta",          # delta：不带尾巴就超标的引物对按“加尾巴后额外恶化”计分，其余用绝对阈值（推荐）；
                                        # auto：基线超标时整体放宽阈值（旧做法，一对极端引物会让阈值失去意义）；absolute：不做任何处理
-             "delta_grace": 1.0,       # delta 模式容差：基线已超标的引物对，加尾巴后再恶化不超过这么多（kcal/mol）不计；任何尾巴挂在完美双链末端都会带来约 0.7–0.8 的通用稳定
+             "delta_grace": 0.5,       # delta 模式容差（kcal/mol）：有效阈值 = min(绝对阈值, 无尾巴值 − grace)。0.5 = 接合处型引物对加典型尾巴的中位偏移（≈0.4）
+                                       # 之上；33 条 panel 的接合处引物对（无尾巴 −3.78）不受影响
              "margin_A_H": 1.3, "margin_A_E": 0.7, "gap_B_H": 1.5, "gap_B_E": 1.0},
     "tail": {"len": 10, "gc_min": 4, "gc_max": 6, "min_edit": 4, "cross_rc_min": 3, "palin_min": 4},
     "per_cycle": {"lo": 0.4, "hi": 0.6, "base_min": 0.15},
@@ -59,8 +60,8 @@ def init_thermo(cfg):
     p = os.path.join(cfg.get("_work", ""), "offsets.pkl")
     if cfg.get("_work") and cfg["tier"].get("mode", "delta") == "delta" and os.path.exists(p) and not _OFF: _OFF.update(pickle.load(open(p, "rb")))
 def adj(h, e, x, y):
-    """delta 模式：(x, y) 是不带尾巴的两条引物；若它们不带尾巴时就已比 A 阈值差，把这部分基线超标量加回去，
-    只按尾巴带来的额外恶化计分。其他引物对原样返回。"""
+    """delta 模式：(x, y) 是不带尾巴的两条引物；若它们不带尾巴时离 A 阈值不到 grace（或已超标），
+    有效阈值取 min(A 阈值, 无尾巴值 − grace)，只按尾巴带来的超过 grace 的额外恶化计分。其他引物对原样返回。"""
     o = _OFF.get((x, y))
     return (h - o[0], e - o[1]) if o else (h, e)
 def _kw(): return dict(mv_conc=_T["mv_conc"], dv_conc=_T["dv_conc"], dntp_conc=_T["dntp_conc"], dna_conc=_T["dna_conc"])

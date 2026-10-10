@@ -12,7 +12,7 @@ from udp_common import *
 
 G = {}
 def _init(cfg, ex, names, gi, th):
-    init_thermo(cfg); G.update(ex=ex, names=names, gi=gi, th=th, delta=cfg["tier"].get("mode", "delta") == "delta", grace=cfg["tier"].get("delta_grace", 1.0))
+    init_thermo(cfg); G.update(ex=ex, names=names, gi=gi, th=th, delta=cfg["tier"].get("mode", "delta") == "delta", grace=cfg["tier"].get("delta_grace", 0.5))
 def task(args):
     """args: (tube 序号, i5, i7, 变体序列列表(展开后), 目标引物名, 伙伴名集合或 None) → (minH, minE) 变体 × (其他引物 + 变体自身)"""
     k, t5, t7, vexp, target, partners = args; ex = G["ex"]; ori = [o for n, o, s in ex if n == target][0]; tv = t5 if ori == "F" else t7
@@ -23,7 +23,7 @@ def task(args):
             hh = H(a, b); ee = min(Edir(a, b), Edir(b, a))
             if delta:      # 变体不在基线里：现算不带尾巴的值，扣除基线超标量
                 h0 = H(xa, xb); e0 = min(Edir(xa, xb), Edir(xb, xa))
-                if h0 < th["A_H"] or e0 < th["A_E"]: g = G["grace"]; hh -= min(0.0, h0 - th["A_H"]) - g; ee -= min(0.0, e0 - th["A_E"]) - g
+                g = G["grace"]; hh -= min(0.0, h0 - th["A_H"] - g); ee -= min(0.0, e0 - th["A_E"] - g)     # 与 s1 相同的连续规则
             h = min(h, hh); e = min(e, ee)
     return k, h, e
 
