@@ -39,6 +39,11 @@ def site_cov(site, repl=None):
 
 def variants(nm):
     o = OL[nm]; s = o['seq']; v = {'原始': (s, o['start'], o['L'])}
+    if os.environ.get('VARSET') == 'subst3':       # 3′ 端最后 7 位的单碱基替换（长度不变）
+        for pos in range(len(s) - 7, len(s)):
+            alts = [b for b in 'ACGT' if b not in pdz.IUPAC[s[pos]] or len(pdz.IUPAC[s[pos]]) > 1] if s[pos] in 'RYKMSWBDHVN' else [b for b in 'ACGT' if b != s[pos]]
+            for b in alts: v[f"位{pos + 1}:{s[pos]}→{b}"] = (s[:pos] + b + s[pos + 1:], o['start'], o['L'])
+        return v
     if o['orient'] == 'F':           # 5′ 端在左
         for k in (1, 2, 3): v[f'5′修剪{k}'] = (s[k:], o['start'] + k, o['L'] - k)
         for b in 'ACT': v[f'5′首位G→{b}'] = (b + s[1:], o['start'], o['L'])
@@ -72,6 +77,7 @@ N = len(EX); iu = np.triu_indices(N); res = {}
 base_tiers = [tier(float(t['H'][iu].min()), float(t['E'].min())) for t in tubes]
 print('基线', {x: base_tiers.count(x) for x in 'ABC'}, flush=True)
 TARGETS = [('16S-A6-F.2', '16S-A2-R.1'), ('16S-A2-R.1', '16S-A6-F.2')]
+if os.environ.get('TARGET'): TARGETS = [t for t in TARGETS if t[0] == os.environ['TARGET']]
 if __name__ == '__main__':
     pool = Pool(4)
     if os.environ.get('KEYS'):
