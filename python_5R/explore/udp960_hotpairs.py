@@ -7,7 +7,7 @@ out = sys.argv[1]; pkls = sys.argv[2:]
 tubes = {}
 for p in pkls:
     r = pickle.load(open(p, 'rb'))
-    for d in r['tubes'].values(): tubes[int(d['name'][2:])] = d
+    for d in r['tubes'].values(): tubes[d['name']] = d
 EX = r['EX']; N = len(EX); names = sorted({x[0] for x in EX}); nid = {n: i for i, n in enumerate(names)}
 grp = np.array([nid[x[0]] for x in EX]); G = len(names)
 ks = sorted(tubes)
@@ -33,6 +33,6 @@ for step in range(60):
         if score > bestscore: bestq, bestscore, besttt = q, score, tt
     sel.append(bestq); cur_h = np.minimum(cur_h, PH[:, bestq]); cur_e = np.minimum(cur_e, PE[:, bestq])
     acc = (besttt == full).mean(); print(step + 1, names[pairs[bestq][0]], names[pairs[bestq][1]], '一致率 %.3f' % acc, flush=True)
-    if acc >= 0.995: break
+    if acc >= float(__import__('os').environ.get('ACC', 0.995)): break
 hot = [(names[pairs[q][0]], names[pairs[q][1]]) for q in sel]
 json.dump(dict(hot=hot, acc=float(acc), n=len(sel), total_pairs=len(pairs)), open(out, 'w'), ensure_ascii=False, indent=1)
