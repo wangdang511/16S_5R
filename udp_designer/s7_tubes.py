@@ -38,7 +38,10 @@ if __name__ == "__main__":
     args = ap.parse_args(); cfg = setup(args); th = load_thresholds(args.work, cfg); k0, n0 = [int(x) for x in args.shard.split("/")]
     panel = load_panel(args.panel); ex, gi, ng, names = prep(panel); pairs = json.load(open(wp(args.work, args.pairs)))["pairs"]; tn = tube_names(pairs)
     d = wp(args.work, f"tubes_{args.tag}"); os.makedirs(d, exist_ok=True)
-    todo = [(tn[k], p["seq5"], p["seq7"]) for k, p in enumerate(pairs) if k % n0 == k0 and not os.path.exists(os.path.join(d, tn[k] + ".pkl"))]
+    def _same(f, a, b):        # 已有管文件必须与当前配对一致（重选配对后同名管可能换了尾巴）
+        try: r0 = pickle.load(open(f, "rb")); return r0["i5"] == a and r0["i7"] == b
+        except Exception: return False
+    todo = [(tn[k], p["seq5"], p["seq7"]) for k, p in enumerate(pairs) if k % n0 == k0 and not _same(os.path.join(d, tn[k] + ".pkl"), p["seq5"], p["seq7"])]
     if todo:       # 复用：其他 tag 目录里已经测过的同一对 (i5 序列, i7 序列)（重选后常有一部分管完全没变）
         have = {}
         for dd in glob.glob(wp(args.work, "tubes_*/")):
