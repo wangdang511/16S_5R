@@ -11,16 +11,20 @@ from multiprocessing import Pool
 from udp_common import *
 
 G = {}
-def _init(cfg, ex, names, gi):
-    init_thermo(cfg); G.update(ex=ex, names=names, gi=gi)
+def _init(cfg, ex, names, gi, th):
+    init_thermo(cfg); G.update(ex=ex, names=names, gi=gi, th=th, delta=cfg["tier"].get("mode", "delta") == "delta", grace=cfg["tier"].get("delta_grace", 1.0))
 def task(args):
     """args: (tube 序号, i5, i7, 变体序列列表(展开后), 目标引物名, 伙伴名集合或 None) → (minH, minE) 变体 × (其他引物 + 变体自身)"""
     k, t5, t7, vexp, target, partners = args; ex = G["ex"]; ori = [o for n, o, s in ex if n == target][0]; tv = t5 if ori == "F" else t7
-    V = [tv + s for s in vexp]; h = e = 0.0
-    others = [((t5 if o == "F" else t7) + s) for n, o, s in ex if n != target and (partners is None or n in partners)]
-    for a in V:
-        for b in others + V:
-            h = min(h, H(a, b)); e = min(e, Edir(a, b), Edir(b, a))
+    V = [(tv + s, s) for s in vexp]; h = e = 0.0; th = G["th"]; delta = G["delta"]
+    others = [((t5 if o == "F" else t7) + s, s) for n, o, s in ex if n != target and (partners is None or n in partners)]
+    for a, xa in V:
+        for b, xb in others + V:
+            hh = H(a, b); ee = min(Edir(a, b), Edir(b, a))
+            if delta:      # 变体不在基线里：现算不带尾巴的值，扣除基线超标量
+                h0 = H(xa, xb); e0 = min(Edir(xa, xb), Edir(xb, xa))
+                if h0 < th["A_H"] or e0 < th["A_E"]: g = G["grace"]; hh -= min(0.0, h0 - th["A_H"]) - g; ee -= min(0.0, e0 - th["A_E"]) - g
+            h = min(h, hh); e = min(e, ee)
     return k, h, e
 
 def variants(seq, last, orient):
@@ -45,7 +49,7 @@ if __name__ == "__main__":
     if args.only: V = {k: v for k, v in V.items() if k in args.only.split(",") or k == "原始"}
     partners = set(args.partners.split(",")) if args.partners else None
     print(f"{args.oligo}：{len(V)} 个变体，{NP} 个管，" + ("筛选模式，伙伴 " + str(sorted(partners)) if partners else "整管模式"), flush=True); out = []; t0 = time.time()
-    with Pool(cfg["procs"], _init, (cfg, ex, names, gi)) as pool:
+    with Pool(cfg["procs"], _init, (cfg, ex, names, gi, th)) as pool:
         for vn, vs in V.items():
             vexp = expand(vs); jobs = [(k, pairs[k]["seq5"], pairs[k]["seq7"], vexp, args.oligo, partners) for k in range(NP)]
             r = sorted(pool.map(task, jobs)); h = np.array([x[1] for x in r]); e = np.array([x[2] for x in r])

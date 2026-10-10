@@ -11,21 +11,22 @@ from udp_common import *
 G = {}
 def _init(cfg, ex, gi, ng):
     init_thermo(cfg); G.update(ex=ex, gi=gi, ng=ng)
-def eval_seqs(seqs, gi, ng):
-    """seqs：带尾巴的全部展开引物；返回 minH, minE, PH(G×G), PE(G×G), minHP"""
+def eval_seqs(seqs, gi, ng, raw=None):
+    """seqs：带尾巴的全部展开引物；raw：对应的不带尾巴序列（delta 模式用来扣除基线超标）；返回 minH, minE, PH(G×G), PE(G×G), minHP（PH、PE 是扣除后的值）"""
     n = len(seqs); PH = np.zeros((ng, ng), np.float32); PE = np.zeros((ng, ng), np.float32)
     for i in range(n):
         a = seqs[i]
         for j in range(i, n):
             b = seqs[j]; h = H(a, b); e = Edir(a, b)
             if j != i: e = min(e, Edir(b, a))
+            if raw is not None: h, e = adj(h, e, raw[i], raw[j])
             x, y = gi[i], gi[j]
             if h < PH[x, y]: PH[x, y] = PH[y, x] = h
             if e < PE[x, y]: PE[x, y] = PE[y, x] = e
     return float(PH.min()), float(PE.min()), PH, PE, min(HP(s) for s in seqs)
 def tube_task(args):
     name, t5, t7 = args; ex = G["ex"]; seqs = [(t5 if o == "F" else t7) + s for _, o, s in ex]
-    h, e, PH, PE, hp = eval_seqs(seqs, G["gi"], G["ng"]); return dict(name=name, i5=t5, i7=t7, minH=h, minE=e, PH=PH, PE=PE, hp=hp)
+    h, e, PH, PE, hp = eval_seqs(seqs, G["gi"], G["ng"], [s for _, _, s in ex]); return dict(name=name, i5=t5, i7=t7, minH=h, minE=e, PH=PH, PE=PE, hp=hp)
 
 def tube_names(pairs): return [f"T{k+1:03d}" for k in range(len(pairs))]
 def prep(panel):

@@ -51,10 +51,17 @@ if __name__ == "__main__":
         np.savez(out, H0=H0, E0=E0)
     z = np.load(out); H0, E0 = z["H0"], z["E0"]; Es = np.minimum(E0, E0.T)
     h0, e0 = float(H0.min()), float(Es.min()); th = dict(cfg["tier"])
-    if th.get("auto"):
+    if th.get("mode") == "auto":
         th["A_H"] = min(th["A_H"], round(h0 - th["margin_A_H"], 1)); th["A_E"] = min(th["A_E"], round(e0 - th["margin_A_E"], 1))
         th["B_H"] = min(th["B_H"], round(th["A_H"] - th["gap_B_H"], 1)); th["B_E"] = min(th["B_E"], round(th["A_E"] - th["gap_B_E"], 1))
     json.dump({k: th[k] for k in ("A_H", "A_E", "B_H", "B_E")}, open(wp(args.work, "thresholds.json"), "w"))
+    # delta 模式：记录不带尾巴就超过 A 阈值的展开引物对的超标量（≤0），后面所有步骤按“额外恶化”计分
+    off = {}
+    if th.get("mode", "delta") == "delta":
+        bi, bj = np.where((H0 < th["A_H"]) | (Es < th["A_E"]))
+        for i, j in zip(bi, bj):
+            g = th.get("delta_grace", 1.0); o = (min(0.0, float(H0[i, j]) - th["A_H"]) - g, min(0.0, float(Es[i, j]) - th["A_E"]) - g); off[(ex[i][2], ex[j][2])] = o; off[(ex[j][2], ex[i][2])] = o
+    pickle.dump(off, open(wp(args.work, "offsets.pkl"), "wb"))
     print(f"无尾巴基线最差：全局 {h0:.2f}，3′端 {e0:.2f} kcal/mol")
     print("采用的阈值：", {k: th[k] for k in ("A_H", "A_E", "B_H", "B_E")}, "（绝对阈值" + (" 已按基线放宽）" if (th['A_H'], th['A_E']) != (cfg['tier']['A_H'], cfg['tier']['A_E']) else " 未改动）"))
     # 名称级矩阵（每对引物名的最差值），后面选热点引物对用
@@ -64,6 +71,11 @@ if __name__ == "__main__":
         for b in range(a, G):
             PH[a, b] = PH[b, a] = H0[np.ix_(idx[a], idx[b])].min(); PE[a, b] = PE[b, a] = Es[np.ix_(idx[a], idx[b])].min()
     np.savez(wp(args.work, "baseline_names.npz"), PH=PH, PE=PE, names=np.array(names))
+    seqd = {o["name"]: o["seq"] for o in panel}; defects = sorted([(float(PE[a, b]), float(PH[a, b]), names[a], names[b]) for a in range(G) for b in range(a, G) if PH[a, b] < th["A_H"] or PE[a, b] < th["A_E"]])
+    with open(wp(args.work, "baseline_defects.tsv"), "w") as fh:
+        fh.write("# 不带尾巴就超过 A 阈值的引物对（panel 本身的问题，与 UDP 无关；delta 模式下按尾巴带来的额外恶化计分）\n#引物1\t引物2\t全局ΔG\t3′端ΔG\t超过B阈值\t序列1\t序列2\n")
+        for e_, h_, a, b in defects: fh.write(f"{a}\t{b}\t{h_:.2f}\t{e_:.2f}\t{'是' if (h_ < th['B_H'] or e_ < th['B_E']) else ''}\t{seqd[a]}\t{seqd[b]}\n")
+    print(f"不带尾巴就超过 A 阈值的引物对 {len(defects)} 个（其中超过 B 阈值 {sum(1 for e_, h_, a, b in defects if h_ < th['B_H'] or e_ < th['B_E'])} 个）→ baseline_defects.tsv" + ("；delta 模式按额外恶化计分" if th.get('mode', 'delta') == 'delta' else ''))
     L = lint(ex, cfg["hot"]["lint_min_k"])
     rows = sorted(((v[0], v[3], k[0], k[1], v) for k, v in L.items()), reverse=True)
     with open(wp(args.work, "lint.tsv"), "w") as fh:

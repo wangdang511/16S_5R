@@ -19,11 +19,12 @@ def _init(cfg, panel, hot, ex):                # hot 在此仅占位
     G["R"] = [e for o in panel if o["orient"] == "R" for e in G["EXP"][o["name"]]]
 def Esym(a, b): return min(Edir(a, b), Edir(b, a))
 def pm(A, B, same):
+    """A、B：[(带尾巴序列, 不带尾巴序列), ...]"""
     h = e = 0.0
-    for i, a in enumerate(A):
-        for j, b in enumerate(B):
+    for i, (a, xa) in enumerate(A):
+        for j, (b, xb) in enumerate(B):
             if same and j < i: continue
-            h = min(h, H(a, b)); e = min(e, Esym(a, b))
+            hh, ee = adj(H(a, b), Esym(a, b), xa, xb); h = min(h, hh); e = min(e, ee)
     return h, e
 def do(arg):
     tail, old, plist = arg; name, t = tail[0], tail[1]; EXP, ORI = G["EXP"], G["ORI"]
@@ -31,12 +32,12 @@ def do(arg):
     for a, b in plist:
         oa, ob = ORI[a], ORI[b]
         if oa == ob:
-            cl = "FF" if oa == "F" else "RR"; h, e = pm([t + x for x in EXP[a]], [t + x for x in EXP[b]], a == b)
+            cl = "FF" if oa == "F" else "RR"; h, e = pm([(t + x, x) for x in EXP[a]], [(t + x, x) for x in EXP[b]], a == b)
             res[cl] = (min(res[cl][0], h), min(res[cl][1], e))
         else:
             f, r = (a, b) if oa == "F" else (b, a)
-            h, e = pm([t + x for x in EXP[f]], EXP[r], False); res["FRu"] = (min(res["FRu"][0], h), min(res["FRu"][1], e))
-            h, e = pm([t + x for x in EXP[r]], EXP[f], False); res["RFu"] = (min(res["RFu"][0], h), min(res["RFu"][1], e))
+            h, e = pm([(t + x, x) for x in EXP[f]], [(x, x) for x in EXP[r]], False); res["FRu"] = (min(res["FRu"][0], h), min(res["FRu"][1], e))
+            h, e = pm([(t + x, x) for x in EXP[r]], [(x, x) for x in EXP[f]], False); res["RFu"] = (min(res["RFu"][0], h), min(res["RFu"][1], e))
     if old is None:      # 发夹和“尾巴×引物”代理与热点无关，只算一次
         res["hpF"] = min([HP(t + e) for e in G["F"]] or [0.0]); res["hpR"] = min([HP(t + e) for e in G["R"]] or [0.0])
         res["ph"] = min(H(t, b) for b in G["BODY"]); res["pe"] = min(Edir(b, t) for b in G["BODY"])

@@ -14,14 +14,14 @@ def Esym(a, b): return min(Edir(a, b), Edir(b, a))
 def row(args):
     i, plist, h0, e0 = args; th, EXP = G["th"], G["EXP"]; t5 = G["T5"][i]; nj = len(G["T7"])
     hs = h0.copy() if h0 is not None else np.zeros(nj, np.float32); es = e0.copy() if e0 is not None else np.zeros(nj, np.float32); early = np.zeros(nj, bool)
-    Fl = {f: [t5 + e for e in EXP[f]] for f, _ in plist}
+    Fl = {f: [(t5 + x, x) for x in EXP[f]] for f, _ in plist}
     for j in range(nj):
         t7 = G["T7"][j]; h, e = float(hs[j]), float(es[j])
         for f, r in plist:
-            Rl = [t7 + x for x in EXP[r]]
-            for a in Fl[f]:
-                for b in Rl:
-                    h = min(h, H(a, b)); e = min(e, Esym(a, b))
+            Rl = [(t7 + x, x) for x in EXP[r]]
+            for a, xa in Fl[f]:
+                for b, xb in Rl:
+                    hh, ee = adj(H(a, b), Esym(a, b), xa, xb); h = min(h, hh); e = min(e, ee)
             if h < th["B_H"] or e < th["B_E"]: early[j] = True; break
         hs[j], es[j] = h, e
     return i, hs, es, early
