@@ -74,6 +74,8 @@ print('基线', {x: base_tiers.count(x) for x in 'ABC'}, flush=True)
 TARGETS = [('16S-A6-F.2', '16S-A2-R.1'), ('16S-A2-R.1', '16S-A6-F.2')]
 if __name__ == '__main__':
     pool = Pool(4)
+    if os.environ.get('KEYS'):
+        res = json.load(open(outp)); TARGETS = []
     for nm, partner in TARGETS:
         o = OL[nm]; keep_idx = KEEP(nm); part_idx = [i for i in keep_idx if EX[i][0] == partner]
         for vn, (seq, st, L) in variants(nm).items():
@@ -86,7 +88,7 @@ if __name__ == '__main__':
             res[key] = dict(seq=seq, start=st, L=L, Tm=tm, cov=cov, nexp=len(new_rows), pair_E_lt45=int((emin < -4.5).sum()), pair_E_min=float(emin.min()), pair_H_lt7=int((hmin < -7).sum()), pair_H_min=float(hmin.min()))
             print(key, seq, res[key], flush=True)
     if FULL:
-        sel = [k for k, v in res.items() if not k.endswith('原始') and v['pair_E_lt45'] <= 3]
+        sel = os.environ['KEYS'].split(',') if os.environ.get('KEYS') else [k for k, v in res.items() if not k.endswith('原始') and v['pair_E_lt45'] <= 3]
         for key in sel:
             nm = key.split('|')[0]; o = OL[nm]; keep_idx = KEEP(nm); new_rows = exp_of(res[key]['seq'])
             jobs = [(k, new_rows, o['orient'], keep_idx) for k in range(len(tubes))]
