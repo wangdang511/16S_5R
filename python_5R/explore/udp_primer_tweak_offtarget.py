@@ -24,7 +24,7 @@ else:
 cnt = collections.defaultdict(set); chk = collections.Counter()
 for name, code in gen:
     for c, pos, st, lab, mm, n in byc.get(name, []):
-        base, k = lab.split('#'); p = EXP[base][int(k) - 1]
+        base, k = lab.split('#'); p = EXP[base][int(k)]
         W = code[pos:pos + n]
         if len(W) < n: continue
         T = enc(p) if st == '+' else enc(pdz.revcomp(p)); d = (W != T)
