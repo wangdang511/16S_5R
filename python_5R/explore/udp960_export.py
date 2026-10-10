@@ -10,7 +10,8 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 pj, outx, outc = sys.argv[1:4]; pkls = sys.argv[4:]; import os; PFX = os.environ.get('TUBE_PFX', 'P')
 D = '/home/user/16S_5R/docs/primer_design/'
-pairs = json.load(open(pj))['pairs']; rc = lambda s: s[::-1].translate(str.maketrans('ACGT', 'TGCA'))
+import os; NP = int(os.environ.get('NPAIRS', 96)); POOLF = os.environ.get('POOL', 'primer_order_6amp_pool33_v3.xlsx'); SH = f'{NP}对'
+pairs = json.load(open(pj))['pairs'][:NP]; rc = lambda s: s[::-1].translate(str.maketrans('ACGT', 'TGCA'))
 meas = {}
 for p in pkls:
     r = pickle.load(open(p, 'rb')); N0 = len(r['EX']); iu = np.triu_indices(N0)
@@ -37,23 +38,23 @@ def verify(idx):
     return {'最小编辑距离（全部序列）': int(Dm.min()), '跨类 i5 对 rc(i7) 最小编辑距离': int(min(cross.min(), cross2.min())), '同一序列与自身反向互补最小': int(own), '每周期全部达标': bool(ok),
             'GC范围': (min(sum(c in 'GC' for c in s) for s in S), max(sum(c in 'GC' for c in s) for s in S)), '同聚物个数': sum(bool(re.search(r'(.)\1\1', s)) for s in S),
             '序列数': len(set(S)), '与 Illumina 384 对相同序列数': sum(s in ill or rc(s) in ill for s in S)}
-ver = {'96 组': verify(list(range(96))), '核心 48 组': verify(list(range(48)))}
+ver = {'96 组': verify(list(range(96))), '核心 48 组': verify(list(range(48)))} if NP == 96 else {'48 组': verify(list(range(48)))}
 f = lambda **k: Font(**{'name': 'Arial', 'size': 10, **k}); hf = PatternFill('solid', fgColor='1F3864')
 thin = Side(style='thin', color='BFBFBF'); bd = Border(left=thin, right=thin, top=thin, bottom=thin)
 fl = {'A': PatternFill('solid', fgColor='E2EFDA'), 'B': PatternFill('solid', fgColor='FFF2CC'), 'C': PatternFill('solid', fgColor='F8CBAD')}
 wb = Workbook(); s = wb.active; s.title = '说明'
-tc96 = collections.Counter(info(k)['tier'] for k in range(96)); tc48 = collections.Counter(info(k)['tier'] for k in range(48)); srcs = collections.Counter(info(k)['src'] for k in range(96))
-L = [('自建 UDP：重新配对后的 96 对（前 48 对 = 核心 48 组）', 1),
-('做法：960 条自建序列（U001–U960，每条都可当 i5 或 i7）→ 第一阶段单个序列评估 → 第二阶段选 144 个 i5 + 144 个 i7 的候选池（编辑距离 ≥4、跨类反向互补 ≥3、每周期配色达标）→ 第三阶段对 100×100 子集算 i5×i7 的热点正向×反向相互作用 → 第四阶段在子集里选 96 对并配对（前 48 对为核心 48 组）。', 0),
-('分级来源：%s；A：全局二聚体 ≥ −7 且 3′端 ≥ −4.5 kcal/mol；B：≥ −8.5 且 ≥ −5.5；C：其余（经验阈值，无尾巴基线 −5.7 / −3.8）。热点代理的预测与整管评估的一致率在 480 个固定配对管上为 99.6%%。' % '、'.join(f'{k} {v} 个管' for k, v in srcs.items()), 0),
-('分级结果：96 组 A %d / B %d / C %d；核心 48 组 A %d / B %d / C %d。' % (tc96['A'], tc96['B'], tc96['C'], tc48['A'], tc48['B'], tc48['C']), 0)]
+tc96 = collections.Counter(info(k)['tier'] for k in range(NP)); tc48 = collections.Counter(info(k)['tier'] for k in range(48)); srcs = collections.Counter(info(k)['src'] for k in range(NP))
+L = [('自建 UDP：重新配对后的 96 对（前 48 对 = 核心 48 组）' if NP == 96 else '自建 UDP：核心 48 对（96 对的前 48 对）', 1),
+('做法：960 条自建序列（U001–U960，每条都可当 i5 或 i7）→ 第一阶段单个序列评估 → 第二阶段选 144 个 i5 + 144 个 i7 的候选池（编辑距离 ≥4、跨类反向互补 ≥3、每周期配色达标）→ 第三阶段对 144×144 候选池算 i5×i7 的热点正向×反向相互作用 → 第四阶段模拟退火选 96 对并配对（前 48 对为核心 48 组）→ 整管实测，按实测互换 i7 修复。', 0),
+('分级来源：%s；A：全局二聚体 ≥ −7 且 3′端 ≥ −4.5 kcal/mol；B：≥ −8.5 且 ≥ −5.5；C：其余（经验阈值，无尾巴基线 −5.7 / −3.8）。热点代理的预测比整管实测乐观，本表的分级均为整管实测。' % '、'.join(f'{k} {v} 个管' for k, v in srcs.items()), 0),
+('分级结果：96 组 A %d / B %d / C %d；核心 48 组 A %d / B %d / C %d。' % (tc96['A'], tc96['B'], tc96['C'], tc48['A'], tc48['B'], tc48['C']) if NP == 96 else '分级结果：48 组 A %d / B %d / C %d。' % (tc48['A'], tc48['B'], tc48['C']), 0), ('引物池：%s（v4 相对 v3 只改 16S-A2-R.1 第 15 位 A→T；分级是用该引物池整管实测的）。' % POOLF, 0)]
 for k, v in ver.items(): L.append((f'{k}独立验证：' + '；'.join(f'{a}={b}' for a, b in v.items()), 0))
 L.append(('命名：第 n 对的 i5 = DN5{n:03d}（放正向引物 5′端），i7 = DN7{n:03d}（放反向引物 5′端）；“U 编号”是 960 条序列的唯一编号（U001–U480 来自原 i5，U481–U960 来自原 i7，角色可以互换）。', 0))
 L.append(('没有评估的：真实接头；实验验证（建议同样品多条形码对照）。逻辑和代码见 docs/primer_design/udp_denovo960/ 与 python_5R/explore/udp960_*.py。', 0))
 s.column_dimensions['A'].width = 150
 for i, (t, b) in enumerate(L, 1):
     c = s.cell(i, 1, t); c.font = f(bold=bool(b), size=12 if b else 10); c.alignment = Alignment(wrap_text=True, vertical='top')
-w = wb.create_sheet('96对')
+w = wb.create_sheet(SH)
 heads = ['序号', '核心48', 'i5 名称', 'i7 名称', 'i5 U编号', 'i7 U编号', 'i5 序列', 'i7 序列', 'i5 GC', 'i7 GC', '分级', '分级来源', '全局二聚体最差 ΔG', '3′端最差 ΔG', '发夹最差 ΔG', 'Olivar 总坏度']
 for q in range(10): heads.append(f'i5 第{q + 1}位')
 for q in range(10): heads.append(f'i7 第{q + 1}位')
@@ -72,10 +73,10 @@ c1 = wb.create_sheet('每周期统计')
 for j, h in enumerate(['范围', '序列', '周期', 'A', 'C', 'G', 'T', 'GC%', 'A+C%', 'A+T%', '是否达标'], 1):
     c = c1.cell(1, j, h); c.font = f(bold=True, color='FFFFFF'); c.fill = hf
 row = 2
-for lab, N in (('96 组', 96), ('核心 48 组', 48)):
+for lab, N in ((('96 组', 96), ('核心 48 组', 48)) if NP == 96 else (('48 组', 48),)):
     for name, base in (('i5', 17), ('i7', 27)):
         for p in range(10):
-            hc = get_column_letter(base + p); rng = f"'96对'!${hc}$2:${hc}${N + 1}"
+            hc = get_column_letter(base + p); rng = f"'{SH}'!${hc}$2:${hc}${N + 1}"
             c1.cell(row, 1, lab); c1.cell(row, 2, name); c1.cell(row, 3, p + 1)
             for j, b in enumerate('ACGT', 4): c1.cell(row, j, f'=COUNTIF({rng},"{b}")')
             c1.cell(row, 8, f'=(E{row}+F{row})/{N}'); c1.cell(row, 9, f'=(D{row}+E{row})/{N}'); c1.cell(row, 10, f'=(D{row}+G{row})/{N}')
@@ -85,7 +86,7 @@ for lab, N in (('96 组', 96), ('核心 48 组', 48)):
 for r_ in c1.iter_rows(min_row=2):
     for c in r_: c.font = f()
 wb.save(outx)
-ws = openpyxl.load_workbook(D + 'primer_order_6amp_pool33_v3.xlsx')['订购清单']; oligos = [(r_[1], r_[2], r_[4]) for r_ in ws.iter_rows(min_row=4, max_row=36, values_only=True)]
+ws = openpyxl.load_workbook(D + POOLF)['订购清单']; oligos = [(r_[1], r_[2], r_[4]) for r_ in ws.iter_rows(min_row=4, max_row=36, values_only=True)]
 with open(outc, 'w', newline='', encoding='utf-8-sig') as fh:
     cw = csv.writer(fh); cw.writerow(['对', '核心48', 'i5 名称', 'i7 名称', '分级', '引物名', '位点', '尾巴', '特异部分', '完整序列 5′→3′', '长度'])
     for k, p in enumerate(pairs):
