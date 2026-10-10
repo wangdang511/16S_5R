@@ -19,6 +19,30 @@ def _row(i):
     for j in range(i, n): er[j] = Edir(EXV[j][2], a)       # E0[j,i]
     return i, h, e, er
 
+def flush(ex, kmin=5):
+    """平齐互补：X 的 3′端 m 个碱基的反向互补 = Y 的 5′端前 m 个碱基（m≥kmin）。
+    不带尾巴时 X 的 3′端顶在 Y 的 5′末端、没有模板，无法延伸；加尾巴后 Y 的尾巴就在 X 的 3′端前面，
+    X 必然沿尾巴延伸（与选哪条尾巴无关），ΔG 评分看不出这种变化。返回 {(nameX,nameY): m}"""
+    pref = {}
+    for nm, o, s in ex:
+        for k in range(kmin, len(s) + 1): pref.setdefault(s[:k], set()).add(nm)
+    res = {}
+    for nx, ox, x in ex:
+        for m in range(kmin, len(x) + 1):
+            for ny in pref.get(revcomp(x[-m:]), ()):
+                if ny != nx: res[(nx, ny)] = max(res.get((nx, ny), 0), m)
+    return res
+
+def write_flush(work, ex, panel, kmin=5):
+    F = flush(ex, kmin); seqd = {o["name"]: o["seq"] for o in panel}
+    with open(wp(work, "flush.tsv"), "w") as fh:
+        fh.write("# 平齐互补：X 的 3′端与 Y 的 5′末端对齐互补 m nt。不带尾巴不能延伸；加尾巴后 X 沿 Y 的尾巴延伸，与尾巴选择无关。"
+                 "m≥8 建议在加 UDP 前从 panel 层面处理（换引物 / Y 的 5′端修剪 2–3 nt）\n#X(3′端延伸者)\tY(5′端带尾巴)\tm\tX序列\tY序列\n")
+        for (a, b), m in sorted(F.items(), key=lambda kv: -kv[1]): fh.write(f"{a}\t{b}\t{m}\t{seqd[a]}\t{seqd[b]}\n")
+    big = sorted(((m, a, b) for (a, b), m in F.items() if m >= 8), reverse=True)
+    print(f"平齐互补 {len(F)} 对（m≥8：{len(big)} 对）→ flush.tsv", big[:5])
+    return F
+
 def lint(ex, kmin):
     """返回 {(nameX,nameY): (k, m, j, gc, X3, Y5)}：X 的 3′端 m-mer 的反向互补 w，Y 的 5′端 k=m-j 个碱基等于 w[j:]（j=1,2 个碱基由尾巴末位提供）"""
     pref = {}
@@ -76,6 +100,7 @@ if __name__ == "__main__":
         fh.write("# 不带尾巴就超过 A 阈值的引物对（panel 本身的问题，与 UDP 无关；delta 模式下按尾巴带来的额外恶化计分）\n#引物1\t引物2\t全局ΔG\t3′端ΔG\t超过B阈值\t序列1\t序列2\n")
         for e_, h_, a, b in defects: fh.write(f"{a}\t{b}\t{h_:.2f}\t{e_:.2f}\t{'是' if (h_ < th['B_H'] or e_ < th['B_E']) else ''}\t{seqd[a]}\t{seqd[b]}\n")
     print(f"不带尾巴就超过 A 阈值的引物对 {len(defects)} 个（其中超过 B 阈值 {sum(1 for e_, h_, a, b in defects if h_ < th['B_H'] or e_ < th['B_E'])} 个）→ baseline_defects.tsv" + ("；delta 模式按额外恶化计分" if th.get('mode', 'delta') == 'delta' else ''))
+    write_flush(args.work, ex, panel, cfg["hot"]["lint_min_k"])
     L = lint(ex, cfg["hot"]["lint_min_k"])
     rows = sorted(((v[0], v[3], k[0], k[1], v) for k, v in L.items()), reverse=True)
     with open(wp(args.work, "lint.tsv"), "w") as fh:
