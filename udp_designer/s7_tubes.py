@@ -38,6 +38,18 @@ if __name__ == "__main__":
     panel = load_panel(args.panel); ex, gi, ng, names = prep(panel); pairs = json.load(open(wp(args.work, args.pairs)))["pairs"]; tn = tube_names(pairs)
     d = wp(args.work, f"tubes_{args.tag}"); os.makedirs(d, exist_ok=True)
     todo = [(tn[k], p["seq5"], p["seq7"]) for k, p in enumerate(pairs) if k % n0 == k0 and not os.path.exists(os.path.join(d, tn[k] + ".pkl"))]
+    if todo:       # 复用：其他 tag 目录里已经测过的同一对 (i5 序列, i7 序列)（重选后常有一部分管完全没变）
+        have = {}
+        for dd in glob.glob(wp(args.work, "tubes_*/")):
+            if os.path.abspath(dd) == os.path.abspath(d): continue
+            for f in glob.glob(os.path.join(dd, "T*.pkl")):
+                try: r0 = pickle.load(open(f, "rb")); have[(r0["i5"], r0["i7"])] = r0
+                except Exception: pass
+        nreuse = 0
+        for (nm, a, b) in list(todo):
+            if (a, b) in have:
+                r0 = dict(have[(a, b)]); r0["name"] = nm; pickle.dump(r0, open(os.path.join(d, nm + ".pkl"), "wb")); todo.remove((nm, a, b)); nreuse += 1
+        if nreuse: print(f"复用已测过的管 {nreuse} 个", flush=True)
     print(f"{len(pairs)} 个管，本分片待算 {len(todo)}；展开引物 {len(ex)} 条，每管约 {int(1.5*len(ex)**2)} 次调用", flush=True); t0 = time.time()
     with Pool(cfg["procs"], _init, (cfg, ex, gi, ng)) as p:
         for q, r in enumerate(p.imap_unordered(tube_task, todo), 1):
