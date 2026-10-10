@@ -35,5 +35,5 @@ if __name__ == '__main__':
     with Pool(4) as p:
         for k, (i, hs, es, early) in enumerate(p.imap_unordered(row, todo), 1):
             st['rows'][i] = (hs, es, early)
-            if k % 4 == 0: pickle.dump(st, open(out, 'wb')); print('完成行', len(st['rows']), flush=True)
+            pickle.dump(st, open(out, "wb")); print("完成行", len(st["rows"]), flush=True)
     st['i5'] = pool['i5']; st['i7'] = pool['i7']; pickle.dump(st, open(out, 'wb')); print('全部完成', flush=True)
