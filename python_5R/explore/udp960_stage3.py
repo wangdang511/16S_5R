@@ -19,9 +19,11 @@ def H(a, b): return primer3.calc_heterodimer(a, b, temp_c=T, **KW).dg / 1000
 def E(a, b): return min(primer3.calc_end_stability(a, b, temp_c=T, **KW).dg, primer3.calc_end_stability(b, a, temp_c=T, **KW).dg) / 1000
 SUB = json.load(open(os.environ['SUB'])) if os.environ.get('SUB') else None
 COLS = SUB['cols'] if SUB else list(range(len(T7)))
-def row(i):
-    t5 = T5[i]; Fl = {f: [t5 + e for e in EXP[f]] for f, r in FR}; hs = np.full(len(T7), np.nan); es = np.full(len(T7), np.nan); early = np.zeros(len(T7), bool)
+def row(args):
+    i, hs0, es0, ea0 = args
+    t5 = T5[i]; Fl = {f: [t5 + e for e in EXP[f]] for f, r in FR}; hs = np.full(len(T7), np.nan) if hs0 is None else hs0.copy(); es = np.full(len(T7), np.nan) if es0 is None else es0.copy(); early = np.zeros(len(T7), bool) if ea0 is None else ea0.copy()
     for j in COLS:
+        if not np.isnan(hs[j]): continue
         t7 = T7[j]; h = e = 0.0
         for f, r in FR:
             Rl = [t7 + x for x in EXP[r]]
@@ -33,7 +35,12 @@ def row(i):
     return i, hs, es, early
 if __name__ == '__main__':
     st = pickle.load(open(out, 'rb')) if os.path.exists(out) else dict(rows={})
-    todo = [i for i in (SUB['rows'] if SUB else range(len(T5))) if i not in st['rows']]; print('待算行', len(todo), flush=True)
+    todo = []
+    for i in (SUB['rows'] if SUB else range(len(T5))):
+        old = st['rows'].get(i)
+        if old is None: todo.append((i, None, None, None))
+        elif any(np.isnan(old[0][j]) for j in COLS): todo.append((i, old[0], old[1], old[2]))
+    print('待算行', len(todo), flush=True)
     with Pool(4) as p:
         for k, (i, hs, es, early) in enumerate(p.imap_unordered(row, todo), 1):
             st['rows'][i] = (hs, es, early)
