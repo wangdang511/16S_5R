@@ -11,6 +11,7 @@
 import time
 from multiprocessing import Pool
 from udp_common import *
+import hashlib
 
 G = {}
 def _init(cfg, panel, hot, ex):                # hot 在此仅占位
@@ -48,12 +49,20 @@ if __name__ == "__main__":
     panel = load_panel(args.panel); ex = build_ex(panel); hot = [tuple(x) for x in json.load(open(wp(args.work, "hot_pairs.json")))["hot"]]
     tails = read_tsv(wp(args.work, "universe.tsv")); out = wp(args.work, "single.pkl")
     done = pickle.load(open(out, "rb")) if os.path.exists(out) else {}
-    hp = wp(args.work, "single_hot_done.json"); hdone = {tuple(x) for x in json.load(open(hp))} if os.path.exists(hp) else set(); new = [h for h in hot if h not in hdone]
-    # 新尾巴：全部热点对；已算过的尾巴：只补新增热点对（增量）
-    todo = [(t, None, hot) for t in tails if t[0] not in done] + ([(t, done[t[0]], new) for t in tails if t[0] in done] if new else [])
-    print(f"待算 {len(todo)} / {len(tails)} 条尾巴；热点引物对 {len(hot)}（新增 {len(new)}）", flush=True); t0 = time.time()
+    hp = wp(args.work, "single_hot_done.json"); hdone = frozenset(tuple(x) for x in json.load(open(hp))) if os.path.exists(hp) else frozenset()
+    # 每条尾巴记录自己已覆盖的热点集合（hk → 热点列表存在 single_hot_sets.json），中途掉线重跑时只补缺的部分
+    sp = wp(args.work, "single_hot_sets.json"); sets = {k: frozenset(tuple(x) for x in v) for k, v in json.load(open(sp)).items()} if os.path.exists(sp) else {}
+    hotset = frozenset(hot); hk = hashlib.md5(repr(sorted(hotset)).encode()).hexdigest()[:12]
+    if hk not in sets:
+        sets[hk] = hotset; json.dump({k: [list(x) for x in sorted(v)] for k, v in sets.items()}, open(sp, "w"))
+    todo = []
+    for t in tails:
+        if t[0] not in done: todo.append((t, None, hot)); continue
+        cov = sets.get(done[t[0]].get("hk"), hdone); miss = [h for h in hot if h not in cov]
+        if miss: todo.append((t, done[t[0]], miss))
+    print(f"待算 {len(todo)} / {len(tails)} 条尾巴；热点引物对 {len(hot)}（已有记录 {sum(1 for t in tails if t[0] in done)} 条）", flush=True); t0 = time.time()
     with Pool(cfg["procs"], _init, (cfg, panel, hot, ex)) as p:
         for k, r in enumerate(p.imap_unordered(do, todo, chunksize=2), 1):
-            done[r["name"]] = r
-            if k % 40 == 0: pickle.dump(done, open(out, "wb")); print(f"  完成 {k}/{len(todo)} ({time.time()-t0:.0f}s)", flush=True)
-    pickle.dump(done, open(out, "wb")); json.dump([list(h) for h in hot], open(hp, "w")); print("全部完成", len(done))
+            r["hk"] = hk; done[r["name"]] = r
+            if k % 40 == 0: pickle.dump(done, open(out + ".tmp", "wb")); os.replace(out + ".tmp", out); print(f"  完成 {k}/{len(todo)} ({time.time()-t0:.0f}s)", flush=True)
+    pickle.dump(done, open(out + ".tmp", "wb")); os.replace(out + ".tmp", out); json.dump([list(h) for h in hot], open(hp, "w")); print("全部完成", len(done))

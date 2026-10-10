@@ -12,6 +12,7 @@ python3 s0_universe.py --work "$W" "${CFG[@]}" "${EX[@]}"
 [ -f "$W/baseline.npz" ] || python3 s1_baseline.py --work "$W" --panel "$P" "${CFG[@]}"
 for r in $(seq 1 "$R"); do
   echo "================ 第 $r 轮 ================"
+  if [ ! -f "$W/tubes_r$r.summary.json" ]; then     # 已完成的轮次（掉线重跑时）直接跳过，只做收敛判断
   python3 s2_hotpairs.py --work "$W" --panel "$P" "${CFG[@]}"
   python3 s3_single.py   --work "$W" --panel "$P" "${CFG[@]}"
   [ -f "$W/pool.json" ] || python3 s4_pool.py --work "$W" "${CFG[@]}"
@@ -19,6 +20,7 @@ for r in $(seq 1 "$R"); do
   MEAS=(); [ -f "$W/meas.json" ] && MEAS=(--meas "$W/meas.json")
   python3 s6_pair.py     --work "$W" "${CFG[@]}" "${MEAS[@]}" --out "pairs_r$r.json"
   python3 s7_tubes.py    --work "$W" --panel "$P" "${CFG[@]}" --pairs "pairs_r$r.json" --tag "r$r" --update-hot
+  else echo "第 $r 轮已完成，跳过"; fi
   LAST=$r
   python3 - "$W" "$r" <<'PY' && break || true
 import json,sys

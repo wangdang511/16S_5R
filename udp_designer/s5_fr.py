@@ -6,6 +6,7 @@
 import time
 from multiprocessing import Pool
 from udp_common import *
+import hashlib
 
 G = {}
 def _init(cfg, th, EXP, T5, T7):
@@ -36,18 +37,21 @@ if __name__ == "__main__":
     pool = json.load(open(wp(args.work, "pool.json"))); seq = {r[0]: r[1] for r in read_tsv(wp(args.work, "universe.tsv"))}
     T5 = [seq[x] for x in pool["i5"]]; T7 = [seq[x] for x in pool["i7"]]
     out = wp(args.work, f"fr_{k}of{n}.pkl"); st = pickle.load(open(out, "rb")) if os.path.exists(out) else dict(rows={}, done_pairs=[])
-    done = {tuple(x) for x in st.get("done_pairs", [])}; new = [p for p in pairs if p not in done]
+    done = frozenset(tuple(x) for x in st.get("done_pairs", []))
+    # 每行记录自己已覆盖的引物对集合（st["sets"][hk]），中途掉线重跑时只补缺的部分
+    st.setdefault("sets", {}); st.setdefault("rk", {}); hk = hashlib.md5(repr(sorted(pairs)).encode()).hexdigest()[:12]; st["sets"].setdefault(hk, frozenset(pairs))
     mine = [i for i in range(len(T5)) if i % n == k]; t0 = time.time()
     # 任务：没算过的行 → 全部热点对；已算过的行 → 只补新增热点对
     todo = []
     for i in mine:
         old = st["rows"].get(i)
-        if old is None: todo.append((i, pairs, None, None))
-        elif new: todo.append((i, new, old[0], old[1]))
-    print(f"热点 FR 引物对 {len(pairs)}（新增 {len(new)}）；本分片 {len(mine)} 行，待算 {len(todo)}", flush=True)
+        if old is None: todo.append((i, pairs, None, None)); continue
+        cov = st["sets"].get(st["rk"].get(i), done); miss = [p for p in pairs if p not in cov]
+        if miss: todo.append((i, miss, old[0], old[1]))
+    print(f"热点 FR 引物对 {len(pairs)}；本分片 {len(mine)} 行，待算 {len(todo)}", flush=True)
     if todo:
         with Pool(cfg["procs"], _init, (cfg, th, EXP, T5, T7)) as p:
             for q, (i, hs, es, early) in enumerate(p.imap_unordered(row, todo), 1):
-                st["rows"][i] = (hs, es, early)
-                if q % 3 == 0 or q == len(todo): pickle.dump(st, open(out, "wb")); print(f"  完成 {q}/{len(todo)} ({time.time()-t0:.0f}s)", flush=True)
-    st["done_pairs"] = [list(p) for p in pairs]; st["i5"] = pool["i5"]; st["i7"] = pool["i7"]; pickle.dump(st, open(out, "wb")); print("分片完成")
+                st["rows"][i] = (hs, es, early); st["rk"][i] = hk
+                if q % 3 == 0 or q == len(todo): pickle.dump(st, open(out + ".tmp", "wb")); os.replace(out + ".tmp", out); print(f"  完成 {q}/{len(todo)} ({time.time()-t0:.0f}s)", flush=True)
+    st["done_pairs"] = [list(p) for p in pairs]; st["i5"] = pool["i5"]; st["i7"] = pool["i7"]; pickle.dump(st, open(out + ".tmp", "wb")); os.replace(out + ".tmp", out); print("分片完成")
