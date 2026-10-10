@@ -13,7 +13,7 @@ from multiprocessing import Pool
 from udp_common import *
 
 G = {}
-def _init(cfg, panel, hot, ex):
+def _init(cfg, panel, hot, ex):                # hot 在此仅占位
     init_thermo(cfg); G["EXP"] = {o["name"]: expand(o["seq"]) for o in panel}; G["ORI"] = {o["name"]: o["orient"] for o in panel}
     G["HOT"] = hot; G["BODY"] = sorted({x[2] for x in ex}); G["F"] = [e for o in panel if o["orient"] == "F" for e in G["EXP"][o["name"]]]
     G["R"] = [e for o in panel if o["orient"] == "R" for e in G["EXP"][o["name"]]]
@@ -25,10 +25,10 @@ def pm(A, B, same):
             if same and j < i: continue
             h = min(h, H(a, b)); e = min(e, Esym(a, b))
     return h, e
-def do(tail):
-    name, t = tail[0], tail[1]; EXP, ORI = G["EXP"], G["ORI"]
-    res = dict(name=name, seq=t, FF=(0.0, 0.0), RR=(0.0, 0.0), FRu=(0.0, 0.0), RFu=(0.0, 0.0))
-    for a, b in G["HOT"]:
+def do(arg):
+    tail, old, plist = arg; name, t = tail[0], tail[1]; EXP, ORI = G["EXP"], G["ORI"]
+    res = old if old is not None else dict(name=name, seq=t, FF=(0.0, 0.0), RR=(0.0, 0.0), FRu=(0.0, 0.0), RFu=(0.0, 0.0))
+    for a, b in plist:
         oa, ob = ORI[a], ORI[b]
         if oa == ob:
             cl = "FF" if oa == "F" else "RR"; h, e = pm([t + x for x in EXP[a]], [t + x for x in EXP[b]], a == b)
@@ -37,8 +37,9 @@ def do(tail):
             f, r = (a, b) if oa == "F" else (b, a)
             h, e = pm([t + x for x in EXP[f]], EXP[r], False); res["FRu"] = (min(res["FRu"][0], h), min(res["FRu"][1], e))
             h, e = pm([t + x for x in EXP[r]], EXP[f], False); res["RFu"] = (min(res["RFu"][0], h), min(res["RFu"][1], e))
-    res["hpF"] = min([HP(t + e) for e in G["F"]] or [0.0]); res["hpR"] = min([HP(t + e) for e in G["R"]] or [0.0])
-    res["ph"] = min(H(t, b) for b in G["BODY"]); res["pe"] = min(Edir(b, t) for b in G["BODY"])
+    if old is None:      # 发夹和“尾巴×引物”代理与热点无关，只算一次
+        res["hpF"] = min([HP(t + e) for e in G["F"]] or [0.0]); res["hpR"] = min([HP(t + e) for e in G["R"]] or [0.0])
+        res["ph"] = min(H(t, b) for b in G["BODY"]); res["pe"] = min(Edir(b, t) for b in G["BODY"])
     return res
 
 if __name__ == "__main__":
@@ -46,9 +47,12 @@ if __name__ == "__main__":
     panel = load_panel(args.panel); ex = build_ex(panel); hot = [tuple(x) for x in json.load(open(wp(args.work, "hot_pairs.json")))["hot"]]
     tails = read_tsv(wp(args.work, "universe.tsv")); out = wp(args.work, "single.pkl")
     done = pickle.load(open(out, "rb")) if os.path.exists(out) else {}
-    todo = [t for t in tails if t[0] not in done]; print(f"待算 {len(todo)} / {len(tails)} 条尾巴，热点引物对 {len(hot)}", flush=True); t0 = time.time()
+    hp = wp(args.work, "single_hot_done.json"); hdone = {tuple(x) for x in json.load(open(hp))} if os.path.exists(hp) else set(); new = [h for h in hot if h not in hdone]
+    # 新尾巴：全部热点对；已算过的尾巴：只补新增热点对（增量）
+    todo = [(t, None, hot) for t in tails if t[0] not in done] + ([(t, done[t[0]], new) for t in tails if t[0] in done] if new else [])
+    print(f"待算 {len(todo)} / {len(tails)} 条尾巴；热点引物对 {len(hot)}（新增 {len(new)}）", flush=True); t0 = time.time()
     with Pool(cfg["procs"], _init, (cfg, panel, hot, ex)) as p:
         for k, r in enumerate(p.imap_unordered(do, todo, chunksize=2), 1):
             done[r["name"]] = r
-            if k % 40 == 0: pickle.dump(done, open(out, "wb")); print(f"  完成 {len(done)} ({time.time()-t0:.0f}s)", flush=True)
-    pickle.dump(done, open(out, "wb")); print("全部完成", len(done))
+            if k % 40 == 0: pickle.dump(done, open(out, "wb")); print(f"  完成 {k}/{len(todo)} ({time.time()-t0:.0f}s)", flush=True)
+    pickle.dump(done, open(out, "wb")); json.dump([list(h) for h in hot], open(hp, "w")); print("全部完成", len(done))
