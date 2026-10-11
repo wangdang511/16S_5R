@@ -1,0 +1,143 @@
+<title>5R 优化还是重设计</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (~70ch) with full-bleed figures; a sticky step index on wide screens.
+   Color: lab-paper neutrals tinted toward the cobalt accent; nucleotide colors (A/C/G/T, chromatogram convention) as the subject detail. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6675; --line:#d7dde5;
+  --accent:#2747c8; --accent-soft:#e3e8fb;
+  --A:#1f8a4c; --C:#2f62d6; --G:#b07800; --T:#c8372d;
+  --ok:#1f8a4c; --warn:#b07800; --bad:#c8372d;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}.toc{display:none}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:13px;line-height:1.5}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 10px;border-left:2px solid var(--line)}
+.toc a:hover,.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent);outline:none}
+.toc .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+main{min-width:0}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(30px,5vw,44px);line-height:1.2;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--serif);font-weight:800;font-size:26px;line-height:1.3;margin:64px 0 8px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-size:18px;font-weight:700;margin:32px 0 6px}
+p,li{max-width:68ch}
+p{margin:10px 0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+.seq{font-family:var(--mono);letter-spacing:.04em;font-size:13px;white-space:nowrap}
+.sA{color:var(--A)}.sC{color:var(--C)}.sG{color:var(--G)}.sT{color:var(--T)}.sX{color:var(--accent);font-weight:600}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0;overflow-x:auto}
+.figure figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:none}
+svg text{font-family:var(--sans)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.fact{border-top:2px solid var(--ink);padding-top:8px}
+.fact b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.n{text-align:right;font-family:var(--mono);font-size:13px}
+.tbl{overflow-x:auto;margin:14px 0}
+
+/* pipeline steps */
+.steps{list-style:none;padding:0;margin:20px 0;display:grid;gap:0;counter-reset:st}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;position:relative;padding-bottom:26px}
+.step:before{counter-increment:st;content:counter(st);width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--mono);z-index:1}
+.step:after{content:"";position:absolute;left:17px;top:38px;bottom:0;width:2px;background:var(--line)}
+.step:last-child:after{display:none}
+.step h3{margin:4px 0 2px}
+.step .file{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.step .io{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface);white-space:nowrap}
+.pill.k{border-color:var(--accent);color:var(--accent)}
+
+.formula{font-family:var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;font-size:14px;line-height:1.9}
+.note{border-left:3px solid var(--warn);padding:6px 14px;margin:14px 0;background:var(--surface);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p,.card li{font-size:14.5px}
+.card ul{padding-left:18px;margin:6px 0}
+.pri{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:4px;margin-right:6px;vertical-align:2px}
+.p1{background:var(--bad);color:var(--surface)}.p2{background:var(--warn);color:var(--surface)}.p3{background:var(--muted);color:var(--surface)}
+.bugs td:first-child{white-space:nowrap}
+.heat td.h{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink)}
+footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:no-preference){.toc a{transition:color .15s,border-color .15s}}
+</style>
+<div class="wrap"><main style="grid-column:1/-1;width:100%;max-width:980px;margin-inline:auto">
+<header>
+  <div class="eyebrow">16S_5R · 决策</div>
+  <h1>5R：缺 V4 算不算短板，要优化引物还是重新设计</h1>
+  <p class="lede">三个问题都用现有数据检验过。简短回答：缺 V4 是短板；引物确实该调；扩增子重叠的顾虑在 5R 现有位点上不成立，但补 V4 时会成立；建议先优化引物，同时把重新设计作为对照一起验证。</p>
+  <p>这是计算机模拟，数据库是 Greengenes 13_8 和 SILVA 128，不是最新版本；没有实验验证。</p>
+</header>
+
+<p style="border:1px solid var(--warn);background:var(--surface);padding:10px 14px;border-radius:8px"><b>更正（以 <code>primer_v1v2.html</code> 为准）：</b>本页“去掉 V1·V2”和“扩增失败算进去”的准确率有评估假象：约 20% 的带标签序列在 8–19 位没有数据，会被错判为没扩出 A1；该指标对“共同位点至少多少才可比”的规则也很敏感。重新评估后 V1·V2 加回去的属准确率收益在误差范围内（理想 +0.7–0.9 个百分点，扩增失败算进去后持平或略差），推荐的 4 个扩增子方案不变；本页里各方案之间 1–3 个百分点的差距只能当粗略排序。</p>
+<h2>一、缺 V4 是不是短板</h2>
+<p>是，而且是 5R 里单个收益最大的缺口。属准确率（5,899 条带属标签序列，假设所有扩增子都扩出）：</p>
+<div class="tbl"><table><thead><tr><th>设置</th><th>属准确率（5,899 条）</th><th>相对 5R 现有（百分点）</th></tr></thead><tbody><tr><td class="">5R 现有（全部扩增子都扩出的理想情况）</td><td class="n">94.0%</td><td class="n">0</td></tr><tr><td class="">去掉 R3（V5）</td><td class="n">92.1%</td><td class="">−1.9</td></tr><tr><td class="">去掉 R1（V2）</td><td class="n">92.2%</td><td class="">−1.8</td></tr><tr><td class="">去掉 R5（V8）</td><td class="n">92.9%</td><td class="">−1.2</td></tr><tr><td class="">去掉 R2（V3）</td><td class="n">93.0%</td><td class="">−1.0</td></tr><tr><td class="">去掉 R4（V6）</td><td class="n">93.7%</td><td class="">−0.3</td></tr><tr><td class="">补上完整的 V4（537–684）</td><td class="n">95.7%</td><td class="n">+1.6</td></tr><tr><td class="">补上 V4 且去掉 R3</td><td class="n">94.8%</td><td class="n">+0.8</td></tr></tbody></table></div>
+<ul>
+<li>5R 的 R2（338–536）和 R3（685–927）之间有 148 nt 的空隙，正好是 V4（576–682）。补上完整 V4，属准确率从 94.0% 升到 95.7%，已经接近整条 16S 的 95.8%，增益比去掉 5R 任何一个扩增子的损失都大。这是假设性的：现有 R2、R3 的引物位点不允许直接放进完整的 V4 扩增子（见第三节）。</li>
+<li>V4 单独就有 90.0%。5R 的 5 个扩增子里，去掉 R4（V6）只损失 0.3 个百分点，所以 V4 不是可有可无。</li>
+<li>5R 的 R3（685–927）覆盖的是 V5，不是 V4；V4 与 V5 在属水平的区分力都不错，但补 V4 的收益大于 V5。</li>
+</ul>
+
+<h2>二、引物要不要调整</h2>
+<p>要。5R 的 10 条引物按 12 个主要门等权，平均覆盖率只有 76%，每条引物的最差门平均只有 31%（SILVA 验证）；R1 反向引物对 Fusobacteria 几乎为 0，R1 正向引物对 Bacteroidetes 只有约 5%–12%。这些都是引物序列和现有数据库的错配，不依赖数据库新旧：2013 年版或 2016 年版的数据库里这些位点同样失配。更新的数据库（我没法评估）只会让覆盖率更准，不会改变这个方向。</p>
+<p>每个位点加简并碱基或放 2–3 条引物后，主要门平均覆盖率升到约 90%–92%，最差门升到 63%–74%（详见 <code>primer_5R_iteration.html</code>）。</p>
+
+<h2>三、扩增子重叠会不会消耗引物</h2>
+<p>先更正我之前的一个说法：我早先说的“重叠”指同一扩增子里 R1、R2 两条测序读段互相重叠，不是扩增子之间重叠。5R 的扩增子之间<b>没有重叠，引物位点也不重叠</b>。</p>
+<p>你的顾虑本身不多余：如果一条正向引物和一条反向引物的位点相互重叠或紧挨，它们会扩出几十 bp 的短产物，效率最高，会大量消耗这两条引物。检查结果：</p>
+<div class="tbl"><table><thead><tr><th>方案</th><th>扩增子（E. coli 位置）</th><th>相邻扩增子之间的间隔 nt</th><th>相邻外侧引物（F(i)+R(i+1)）的跨区产物长度 bp</th></tr></thead><tbody><tr><td class="">5R 现有</td><td class="">103–332 · 338–536 · 685–927 · 944–1104 · 1175–1391</td><td class="n">5 / 148 / 16 / 70</td><td class="n">434 / 590 / 420 / 448</td></tr><tr><td class="">新 5 扩增子</td><td class="">11–260 · 337–530 · 558–802 · 910–1195 · 1222–1509</td><td class="n">76 / 27 / 107 / 26</td><td class="n">520 / 466 / 638 / 600</td></tr></tbody></table></div>
+<ul>
+<li>5R 相邻引物位点最近只隔 5 nt（R1 反向和 R2 正向）和 16 nt（R3 反向和 R4 正向），这两个引物 3′ 端方向相反、背向而行，不会形成短产物。能形成的是外侧引物的跨区产物，最短 420 bp。在示例数据里实测，这类跨区 read 只占 0.01%–0.03%。</li>
+<li>新设计的相邻扩增子间隔 26–107 nt，外侧跨区产物最短 466 bp，不比 5R 差。</li>
+<li><b>补 V4 时顾虑会成立</b>：V4 的经典正向引物 515F（515–533）和 R2 的反向引物（519–536）位置几乎重合、方向相反，同管会产生约 20 bp 的短产物。所以不能直接往 5R 里加一个 V4 扩增子，必须移动 R2 的反向引物，让它在 V4 正向引物上游至少 20 nt。这会缩短 V3 扩增子（我的新设计是 337–530 和 558–802，间隔 27 nt）。</li>
+<li>引物位点放 2–3 条后，同管的寡核苷酸数增加，需要对所有 F×R 组合再做一次全量的跨区产物检查，我现在只检查了相邻位点。</li>
+</ul>
+
+<h2>四、重新设计还是在现有基础上优化</h2>
+<p>把“扩增失败”算进准确率（序列只在它能扩出的扩增子上有数据，没扩出的当作没测到；用 2,801 条没参与设计的序列）：</p>
+<div class="tbl"><table><thead><tr><th>方案</th><th>至少扩出 1 个扩增子的序列</th><th>其中属鉴定正确</th><th>全部序列中属鉴定正确</th><th>平均每条序列扩出的扩增子数</th></tr></thead><tbody><tr><td class="">5R 现有引物</td><td class="n">96.7%</td><td class="n">79.2%</td><td class="n">76.6%</td><td class="n">3.2</td></tr><tr><td class="">5R 位点，每位点 3 条（迭代引物）</td><td class="n">99.6%</td><td class="n">85.6%</td><td class="n">85.3%</td><td class="n">4.3</td></tr><tr><td class="">新 5 扩增子，每位点 1 条</td><td class="n">99.9%</td><td class="n">87.9%</td><td class="n">87.8%</td><td class="n">4.2</td></tr><tr><td class="">新 5 扩增子，每位点 2–3 条</td><td class="n">99.9%</td><td class="n">89.0%</td><td class="n">88.9%</td><td class="n">4.6</td></tr><tr><td class="">新 4 扩增子（去 V1V2），2–3 条</td><td class="n">99.9%</td><td class="n">90.9%</td><td class="n">90.8%</td><td class="n">3.8</td></tr><tr><td class="">新 3 扩增子（V3+V4+V8V9），2–3 条</td><td class="n">99.9%</td><td class="n">89.9%</td><td class="n">89.8%</td><td class="n">2.8</td></tr></tbody></table></div>
+<ul>
+<li>只优化引物（位点不动）：属鉴定正确的序列从 76.6% 升到 85.3%，增加 8.6 个百分点，占“最好结果”（90.8%）增益的约 61%。</li>
+<li>重新设计 5 个扩增子（含 V4）再多 3.7 个百分点（88.9%）；4 个扩增子（去掉最不稳的 V1·V2）多 5.5 个百分点（90.8%）；3 个扩增子 89.8%。</li>
+<li>这里的绝对值（77%–91%）比理想情况（94%–95%）低很多，因为序列缺扩增子时，可比较的位点变少，我设的规则也比较苛刻；只有相对排序有参考意义。</li>
+</ul>
+<h3>我的判断</h3>
+<ul>
+<li><b>引物必须重做，所以数据库也必须重建</b>：无论哪条路，k-mer 数据库都要用新引物重新生成，实验也要重新验证，所以“在现有基础上优化”省不了多少成本。</li>
+<li><b>新增的成本只在扩增子布局</b>：重新设计要改 SMURF 的区域数和切除引物的长度、换 5R 的实验流程，但换来的是 V4 和更均衡的扩增。</li>
+<li><b>建议两条路并行验证</b>：①5R 位点 + 多条引物（保持协议和现有数据的可比性，最稳妥）；②新设计的 4 扩增子方案（去掉 V1·V2，含 V3、V4）。用同一份已知组成的标准菌群和 FFPE 样本做对照，再决定。如果只能选一个，在你接受重新建库和重新验证的前提下，我倾向于 ②。</li>
+</ul>
+
+<h2>局限</h2>
+<ul>
+<li>“扩增失败算进准确率”的规则是我设计的简化：共同位点 ≥60 才可比，比较错配率；没有模拟 PCR 效率、扩增子占比偏倚和测序错误。</li>
+<li>引物覆盖按“最多 1 个错配、3′ 端 3 个碱基匹配”算，真实 PCR 可能更苛刻。</li>
+<li>属准确率只测到属；Greengenes 属标签偏向培养过的属；数据库不是最新版本。</li>
+<li>多条引物的特异性（对人基因组、线粒体）没有检查。</li>
+</ul>
+<footer>脚本：<code>python_5R/explore/realistic_acc.py</code>；数据：<code>docs/primer_design/realistic_acc.csv</code>。</footer>
+</main></div>

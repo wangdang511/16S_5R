@@ -1,0 +1,408 @@
+{
+ "16S-A2-R.1|原始": {
+  "seq": "GCTGGCACGKARTTAGCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   64.6
+  ],
+  "cov": {
+   "SILVA": 0.962,
+   "GG": 0.973
+  },
+  "nexp": 8,
+  "pair_E_lt45": 23,
+  "pair_E_min": -4.950020614433306,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位13:T→A": {
+  "seq": "GCTGGCACGKARATAGCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   64.3
+  ],
+  "cov": {
+   "SILVA": 0.886,
+   "GG": 0.891
+  },
+  "nexp": 8,
+  "pair_E_lt45": 23,
+  "pair_E_min": -5.154605614433312,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位13:T→C": {
+  "seq": "GCTGGCACGKARCTAGCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   66.6
+  ],
+  "cov": {
+   "SILVA": 0.886,
+   "GG": 0.891
+  },
+  "nexp": 8,
+  "pair_E_lt45": 16,
+  "pair_E_min": -7.235890515890918,
+  "pair_H_lt7": 3,
+  "pair_H_min": -7.235890515890918
+ },
+ "16S-A2-R.1|位13:T→G": {
+  "seq": "GCTGGCACGKARGTAGCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   66.5
+  ],
+  "cov": {
+   "SILVA": 0.886,
+   "GG": 0.891
+  },
+  "nexp": 8,
+  "pair_E_lt45": 50,
+  "pair_E_min": -7.016669215744842,
+  "pair_H_lt7": 5,
+  "pair_H_min": -7.016669215744842
+ },
+ "16S-A2-R.1|位14:T→A": {
+  "seq": "GCTGGCACGKARTAAGCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   64.6
+  ],
+  "cov": {
+   "SILVA": 0.888,
+   "GG": 0.892
+  },
+  "nexp": 8,
+  "pair_E_lt45": 5,
+  "pair_E_min": -4.6426505131218,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位14:T→C": {
+  "seq": "GCTGGCACGKARTCAGCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   67.1
+  ],
+  "cov": {
+   "SILVA": 0.889,
+   "GG": 0.892
+  },
+  "nexp": 8,
+  "pair_E_lt45": 16,
+  "pair_E_min": -7.327740515890924,
+  "pair_H_lt7": 3,
+  "pair_H_min": -7.327740515890924
+ },
+ "16S-A2-R.1|位14:T→G": {
+  "seq": "GCTGGCACGKARTGAGCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   67.1
+  ],
+  "cov": {
+   "SILVA": 0.888,
+   "GG": 0.892
+  },
+  "nexp": 8,
+  "pair_E_lt45": 0,
+  "pair_E_min": -4.481954110644845,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219,
+  "tiers_full": {
+   "A": 0,
+   "B": 95,
+   "C": 1
+  }
+ },
+ "16S-A2-R.1|位15:A→C": {
+  "seq": "GCTGGCACGKARTTCGCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   67.6
+  ],
+  "cov": {
+   "SILVA": 0.924,
+   "GG": 0.929
+  },
+  "nexp": 8,
+  "pair_E_lt45": 50,
+  "pair_E_min": -6.398855614433327,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位15:A→G": {
+  "seq": "GCTGGCACGKARTTGGCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   67.7
+  ],
+  "cov": {
+   "SILVA": 0.928,
+   "GG": 0.929
+  },
+  "nexp": 8,
+  "pair_E_lt45": 3,
+  "pair_E_min": -5.127998362535785,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219,
+  "tiers_full": {
+   "A": 37,
+   "B": 59,
+   "C": 0
+  }
+ },
+ "16S-A2-R.1|位15:A→T": {
+  "seq": "GCTGGCACGKARTTTGCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   65.7
+  ],
+  "cov": {
+   "SILVA": 0.924,
+   "GG": 0.931
+  },
+  "nexp": 8,
+  "pair_E_lt45": 0,
+  "pair_E_min": -4.286335911810282,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219,
+  "tiers_full": {
+   "A": 80,
+   "B": 16,
+   "C": 0
+  }
+ },
+ "16S-A2-R.1|位16:G→A": {
+  "seq": "GCTGGCACGKARTTAACCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   62.3
+  ],
+  "cov": {
+   "SILVA": 0.885,
+   "GG": 0.891
+  },
+  "nexp": 8,
+  "pair_E_lt45": 0,
+  "pair_E_min": -2.911704411803672,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位16:G→C": {
+  "seq": "GCTGGCACGKARTTACCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   64.2
+  ],
+  "cov": {
+   "SILVA": 0.885,
+   "GG": 0.891
+  },
+  "nexp": 8,
+  "pair_E_lt45": 0,
+  "pair_E_min": -2.9512548039411706,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位16:G→T": {
+  "seq": "GCTGGCACGKARTTATCCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   61.8
+  ],
+  "cov": {
+   "SILVA": 0.885,
+   "GG": 0.891
+  },
+  "nexp": 8,
+  "pair_E_lt45": 0,
+  "pair_E_min": -2.4361898039378613,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位17:C→A": {
+  "seq": "GCTGGCACGKARTTAGACR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   61.7
+  ],
+  "cov": {
+   "SILVA": 0.803,
+   "GG": 0.79
+  },
+  "nexp": 8,
+  "pair_E_lt45": 0,
+  "pair_E_min": -2.838104013121803,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位17:C→G": {
+  "seq": "GCTGGCACGKARTTAGGCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   64.6
+  ],
+  "cov": {
+   "SILVA": 0.803,
+   "GG": 0.79
+  },
+  "nexp": 8,
+  "pair_E_lt45": 0,
+  "pair_E_min": -4.092431405249379,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位17:C→T": {
+  "seq": "GCTGGCACGKARTTAGTCR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   61.7
+  ],
+  "cov": {
+   "SILVA": 0.805,
+   "GG": 0.792
+  },
+  "nexp": 8,
+  "pair_E_lt45": 0,
+  "pair_E_min": -2.5835514052493744,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位18:C→A": {
+  "seq": "GCTGGCACGKARTTAGCAR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   62.3
+  ],
+  "cov": {
+   "SILVA": 0.803,
+   "GG": 0.79
+  },
+  "nexp": 8,
+  "pair_E_lt45": 0,
+  "pair_E_min": -2.955676405249389,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位18:C→G": {
+  "seq": "GCTGGCACGKARTTAGCGR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   64.6
+  ],
+  "cov": {
+   "SILVA": 0.803,
+   "GG": 0.79
+  },
+  "nexp": 8,
+  "pair_E_lt45": 0,
+  "pair_E_min": -3.012937411810286,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位18:C→T": {
+  "seq": "GCTGGCACGKARTTAGCTR",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   61.7
+  ],
+  "cov": {
+   "SILVA": 0.805,
+   "GG": 0.79
+  },
+  "nexp": 8,
+  "pair_E_lt45": 0,
+  "pair_E_min": -3.0998793170563586,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位19:R→A": {
+  "seq": "GCTGGCACGKARTTAGCCA",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   64.1
+  ],
+  "cov": {
+   "SILVA": 0.829,
+   "GG": 0.827
+  },
+  "nexp": 4,
+  "pair_E_lt45": 0,
+  "pair_E_min": -4.171055614430006,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位19:R→C": {
+  "seq": "GCTGGCACGKARTTAGCCC",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   64.8
+  ],
+  "cov": {
+   "SILVA": 0.803,
+   "GG": 0.79
+  },
+  "nexp": 4,
+  "pair_E_lt45": 5,
+  "pair_E_min": -4.5185806144333185,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位19:R→G": {
+  "seq": "GCTGGCACGKARTTAGCCG",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   65.1
+  ],
+  "cov": {
+   "SILVA": 0.936,
+   "GG": 0.935
+  },
+  "nexp": 4,
+  "pair_E_lt45": 23,
+  "pair_E_min": -4.950020614433306,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ },
+ "16S-A2-R.1|位19:R→T": {
+  "seq": "GCTGGCACGKARTTAGCCT",
+  "start": 504,
+  "L": 19,
+  "Tm": [
+   63.8
+  ],
+  "cov": {
+   "SILVA": 0.804,
+   "GG": 0.79
+  },
+  "nexp": 4,
+  "pair_E_lt45": 0,
+  "pair_E_min": -4.220910614430017,
+  "pair_H_lt7": 0,
+  "pair_H_min": -6.466283006564219
+ }
+}

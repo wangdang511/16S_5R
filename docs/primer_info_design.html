@@ -1,0 +1,170 @@
+<title>5R 信息量优化设计</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (~70ch) with full-bleed figures; a sticky step index on wide screens.
+   Color: lab-paper neutrals tinted toward the cobalt accent; nucleotide colors (A/C/G/T, chromatogram convention) as the subject detail. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6675; --line:#d7dde5;
+  --accent:#2747c8; --accent-soft:#e3e8fb;
+  --A:#1f8a4c; --C:#2f62d6; --G:#b07800; --T:#c8372d;
+  --ok:#1f8a4c; --warn:#b07800; --bad:#c8372d;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}.toc{display:none}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:13px;line-height:1.5}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 10px;border-left:2px solid var(--line)}
+.toc a:hover,.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent);outline:none}
+.toc .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+main{min-width:0}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(30px,5vw,44px);line-height:1.2;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--serif);font-weight:800;font-size:26px;line-height:1.3;margin:64px 0 8px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-size:18px;font-weight:700;margin:32px 0 6px}
+p,li{max-width:68ch}
+p{margin:10px 0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+.seq{font-family:var(--mono);letter-spacing:.04em;font-size:13px;white-space:nowrap}
+.sA{color:var(--A)}.sC{color:var(--C)}.sG{color:var(--G)}.sT{color:var(--T)}.sX{color:var(--accent);font-weight:600}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0;overflow-x:auto}
+.figure figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:none}
+svg text{font-family:var(--sans)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.fact{border-top:2px solid var(--ink);padding-top:8px}
+.fact b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.n{text-align:right;font-family:var(--mono);font-size:13px}
+.tbl{overflow-x:auto;margin:14px 0}
+
+/* pipeline steps */
+.steps{list-style:none;padding:0;margin:20px 0;display:grid;gap:0;counter-reset:st}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;position:relative;padding-bottom:26px}
+.step:before{counter-increment:st;content:counter(st);width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--mono);z-index:1}
+.step:after{content:"";position:absolute;left:17px;top:38px;bottom:0;width:2px;background:var(--line)}
+.step:last-child:after{display:none}
+.step h3{margin:4px 0 2px}
+.step .file{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.step .io{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface);white-space:nowrap}
+.pill.k{border-color:var(--accent);color:var(--accent)}
+
+.formula{font-family:var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;font-size:14px;line-height:1.9}
+.note{border-left:3px solid var(--warn);padding:6px 14px;margin:14px 0;background:var(--surface);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p,.card li{font-size:14.5px}
+.card ul{padding-left:18px;margin:6px 0}
+.pri{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:4px;margin-right:6px;vertical-align:2px}
+.p1{background:var(--bad);color:var(--surface)}.p2{background:var(--warn);color:var(--surface)}.p3{background:var(--muted);color:var(--surface)}
+.bugs td:first-child{white-space:nowrap}
+.heat td.h{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink)}
+footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:no-preference){.toc a{transition:color .15s,border-color .15s}}
+</style>
+<div class="wrap"><main style="grid-column:1/-1;width:100%;max-width:980px;margin-inline:auto">
+<header>
+  <div class="eyebrow">16S_5R · 引物设计</div>
+  <h1>以信息量为目标：4–6 个扩增子、延伸到 16S 两端</h1>
+  <p class="lede">仍是单管。目标改成“每条序列平均测到的信息量”：被测序碱基位置的保守度熵之和（bit），再乘以该序列被扩出的概率。用动态规划在“同管扩增子区间互不相交、间隔 ≥20 nt”的约束下求精确最优，允许边界延伸到 11 和 1509。</p>
+  <p>我把“4–6 条引物”理解为 4–6 个扩增子（正反引物各一对）。这是计算机模拟，没有做实验；信息量是熵的代理指标，不等于种水平鉴定率。</p>
+<p style="border:1px solid var(--warn);background:var(--surface);padding:10px 14px;border-radius:8px"><b>更正（以 <code>primer_v3v4_design.html</code> 为准）：</b>本页用“位点熵”作为信息量，这个指标和“能否区分属”相关性弱（Spearman 0.33）：熵最高的窗口（V1–V2）属准确率 78%，覆盖 V4 的窗口最高约 90%。因此本页“最优方案不含 V4”和“信息量 +69%”的结论不可靠；此外本页的多引物结果受一个已修复的算法缺陷影响（起始序列未按未覆盖序列加权）。</p>
+  </header>
+
+<h2>一、结论</h2>
+<ul>
+<li>相同的验证集（SILVA 4.8 万条里的近全长序列）上，现有 5R 的期望信息量是 <b>360 bit</b>。新设计 5 个扩增子、每位点 1 条引物是 <b>608 bit（+69%）</b>；每位点放 3 条引物是 <b>646 bit（+80%）</b>。Greengenes 留出集上是 387 → 643 → 689 bit。</li>
+<li>如果只给现有 5R 的位点加到每位点 3 条引物，是 535 bit。所以新设计相对“迭代后的 5R”仍多 21%。</li>
+<li><b>6 个扩增子不比 5 个更好</b>：5 个扩增子之间剩下的空隙最长只有 135 nt（1196–1331），放不下 ≥180 bp 的第 6 个；要放第 6 个就得压缩其他扩增子，期望信息量反而下降，优化器没有选它。4 个扩增子是 517 bit，5 个是 608 bit。</li>
+<li>信息量增加主要来自三件事：①延伸到两端，加入 V1、V2、V9；②每个扩增子都接近 250 bp，两条 126 nt 的读段几乎不重叠，没有浪费碱基（现有 R4 只有 160 bp，重叠约 90 nt）；③引物更通用，平均每条序列能扩出的区域数从 2.8 增加到 3.6。</li>
+<li><b>代价</b>：最优方案<b>没有 V4 和 V8</b>；两端的引物较弱（A1 最差门覆盖 44%，每位点放 3 条后提高到 62%）。</li>
+</ul>
+
+<h2>二、方法</h2>
+<ul>
+<li>熵：Greengenes 13_8 细菌序列在每个 E. coli 位置上的碱基分布。全长 16S 总熵约 1,098 bit，现有 5R 理想情况下覆盖约 671 bit（61%）。</li>
+<li>一个扩增子的信息量：2×126 的读段（含引物）去掉引物后，被测到的位置的熵之和，重叠区只算一次。</li>
+<li>期望信息量 = Σ（扩增子信息量 × 正反引物都匹配的概率），主要门等权。它对扩增子可加，所以可以用动态规划精确求解。</li>
+<li>候选引物位点沿用前面的扫描（Greengenes 与 SILVA 两库的缺口比例都低；主要门平均覆盖率 ≥60%，最差门 ≥40%）。</li>
+<li>设计集：Greengenes 85% OTU 集 + SILVA 1.2 万条里的近全长序列（位置 20–1510 都有数据）。验证集：SILVA 其余序列（10,443 条）和 Greengenes 留出集（3,099 条）。</li>
+</ul>
+
+<h2>三、不同扩增子数与读长下的最优</h2>
+<div class="tbl"><table><thead><tr><th>方案</th><th>读长</th><th>扩增子数</th><th>SILVA 期望信息量 bit</th><th>GG 留出 期望信息量 bit</th><th>SILVA 平均扩出区域数</th><th>各扩增子最差门覆盖（SILVA）%</th><th>扩增子（E. coli 位置，括号为长度）</th></tr></thead><tbody><tr><td class="">5R 现有</td><td class="">2×126</td><td class="n">5</td><td class="n">360</td><td class="n">387</td><td class="n">2.8</td><td class="n">4/1/2/5/4</td><td class="n">103-332 338-536 685-927 944-1104 1175-1391</td></tr><tr><td class="">优化 K≤3</td><td class="">2×126</td><td class="n">3</td><td class="n">399</td><td class="n">429</td><td class="n">2.1</td><td class="n">44/59/63</td><td class="">11-260(250) 338-576(239) 947-1196(250)</td></tr><tr><td class="">优化 K≤4</td><td class="">2×126</td><td class="n">4</td><td class="n">517</td><td class="n">549</td><td class="n">2.8</td><td class="n">44/59/74/63</td><td class="">11-260(250) 338-576(239) 692-925(234) 947-1196(250)</td></tr><tr><td class="">优化 K≤5</td><td class="">2×126</td><td class="n">5</td><td class="n">608</td><td class="n">643</td><td class="n">3.6</td><td class="n">44/59/74/63/66</td><td class="">11-260(250) 338-576(239) 692-925(234) 947-1196(250) 1331-1509(179)</td></tr><tr><td class="">优化 K≤6</td><td class="">2×126</td><td class="n">6</td><td class="n">608</td><td class="n">643</td><td class="n">3.6</td><td class="n">44/59/74/63/66</td><td class="">11-260(250) 338-576(239) 692-925(234) 947-1196(250) 1331-1509(179)</td></tr><tr><td class="">优化 K≤3</td><td class="">2×150</td><td class="n">3</td><td class="n">471</td><td class="n">494</td><td class="n">2.3</td><td class="n">85/88/47</td><td class="">516-805(290) 910-1195(286) 1222-1509(288)</td></tr><tr><td class="">优化 K≤4</td><td class="">2×150</td><td class="n">4</td><td class="n">614</td><td class="n">651</td><td class="n">2.9</td><td class="n">44/85/88/47</td><td class="">11-260(250) 516-805(290) 910-1195(286) 1222-1509(288)</td></tr><tr><td class="">优化 K≤5</td><td class="">2×150</td><td class="n">5</td><td class="n">665</td><td class="n">709</td><td class="n">3.6</td><td class="n">44/59/76/83/47</td><td class="">11-260(250) 338-576(239) 692-923(232) 944-1196(253) 1222-1509(288)</td></tr><tr><td class="">优化 K≤6</td><td class="">2×150</td><td class="n">6</td><td class="n">665</td><td class="n">709</td><td class="n">3.6</td><td class="n">44/59/76/83/47</td><td class="">11-260(250) 338-576(239) 692-923(232) 944-1196(253) 1222-1509(288)</td></tr></tbody></table></div>
+<p>读长 2×150 时扩增子可以放宽到 290 bp，信息量更高（5 个扩增子 665 bit，并且 V8 也被覆盖），但末端扩增子（1222–1509）的最差门覆盖只有 47%。</p>
+
+<h2>四、推荐设计：5 个扩增子，2×126</h2>
+<div class="tbl"><table><thead><tr><th>扩增子</th><th>起点</th><th>终点</th><th>长度 bp</th><th>完整覆盖的可变区</th><th>测序碱基数</th><th>信息量 bit</th></tr></thead><tbody><tr><td class="">A1</td><td class="n">11</td><td class="n">260</td><td class="n">250</td><td class="">V1 · V2</td><td class="n">214</td><td class="n">213</td></tr><tr><td class="">A2</td><td class="n">338</td><td class="n">576</td><td class="n">239</td><td class="">V3</td><td class="n">203</td><td class="n">151</td></tr><tr><td class="">A3</td><td class="n">692</td><td class="n">925</td><td class="n">234</td><td class="">V5</td><td class="n">198</td><td class="n">143</td></tr><tr><td class="">A4</td><td class="n">947</td><td class="n">1196</td><td class="n">250</td><td class="">V6 · V7</td><td class="n">214</td><td class="n">160</td></tr><tr><td class="">A5</td><td class="n">1331</td><td class="n">1509</td><td class="n">179</td><td class="">V9</td><td class="n">141</td><td class="n">109</td></tr></tbody></table></div>
+<p>引物位置（单引物版本）：</p>
+<div class="tbl"><table><thead><tr><th>引物</th><th>E. coli 位置</th><th>序列 5′→3′</th><th>nt</th><th>简并数</th><th>GC</th><th>Tm °C</th><th>SILVA 主要门平均</th><th>SILVA 最差门</th><th>GG 主要门平均</th><th>GG 最差门</th></tr></thead><tbody><tr><td class="">A1-F</td><td class="n">11-28</td><td class="seq">GTTTGATCMTGGCTCASR</td><td class="n">18</td><td class="n">8</td><td class="n">0.5</td><td class="n">57.7-61.6</td><td class="n">89%</td><td class="n">70%</td><td class="n">90%</td><td class="n">71%</td></tr><tr><td class="">A1-R</td><td class="n">243-260</td><td class="seq">CCYCACCAACWAGCTRAT</td><td class="n">18</td><td class="n">8</td><td class="n">0.5</td><td class="n">56.3-63.2</td><td class="n">80%</td><td class="n">49%</td><td class="n">83%</td><td class="n">56%</td></tr><tr><td class="">A2-F</td><td class="n">338-355</td><td class="seq">ACWYCTACGGGAGGCWGC</td><td class="n">18</td><td class="n">8</td><td class="n">0.64</td><td class="n">64.7-67.4</td><td class="n">96%</td><td class="n">88%</td><td class="n">97%</td><td class="n">94%</td></tr><tr><td class="">A2-R</td><td class="n">559-576</td><td class="seq">CTTTAMGCCCARTAAWTC</td><td class="n">18</td><td class="n">8</td><td class="n">0.39</td><td class="n">51.2-56.2</td><td class="n">89%</td><td class="n">59%</td><td class="n">88%</td><td class="n">58%</td></tr><tr><td class="">A3-F</td><td class="n">692-709</td><td class="seq">GGTGRAATSCGTAGAKAT</td><td class="n">18</td><td class="n">8</td><td class="n">0.44</td><td class="n">53.7-59.6</td><td class="n">89%</td><td class="n">77%</td><td class="n">90%</td><td class="n">81%</td></tr><tr><td class="">A3-R</td><td class="n">908-925</td><td class="seq">CGTCAATTYCTTTGAGTT</td><td class="n">18</td><td class="n">2</td><td class="n">0.36</td><td class="n">53.8-55.9</td><td class="n">97%</td><td class="n">94%</td><td class="n">98%</td><td class="n">96%</td></tr><tr><td class="">A4-F</td><td class="n">947-964</td><td class="seq">GYATGYGGYTTAATTCGA</td><td class="n">18</td><td class="n">8</td><td class="n">0.42</td><td class="n">52.5-62.0</td><td class="n">90%</td><td class="n">65%</td><td class="n">92%</td><td class="n">82%</td></tr><tr><td class="">A4-R</td><td class="n">1179-1196</td><td class="seq">GACGTCRTCCYCWCCTTC</td><td class="n">18</td><td class="n">8</td><td class="n">0.61</td><td class="n">59.6-65.6</td><td class="n">97%</td><td class="n">92%</td><td class="n">97%</td><td class="n">91%</td></tr><tr><td class="">A5-F</td><td class="n">1331-1350</td><td class="seq">GAAGYYGGAATYGCTAGTAA</td><td class="n">20</td><td class="n">8</td><td class="n">0.43</td><td class="n">56.1-62.9</td><td class="n">92%</td><td class="n">68%</td><td class="n">88%</td><td class="n">58%</td></tr><tr><td class="">A5-R</td><td class="n">1492-1509</td><td class="seq">GHTACCTTGTTACGACTT</td><td class="n">18</td><td class="n">3</td><td class="n">0.41</td><td class="n">54.2-57.3</td><td class="n">95%</td><td class="n">90%</td><td class="n">97%</td><td class="n">93%</td></tr></tbody></table></div>
+<p>3′ 端互补 ≥5 nt 的引物对：A2-F × A2-F（5 nt）；A2-R × A5-F（5 nt）；A5-F × A5-R（6 nt）。Tm 范围 51–67 °C，不均匀，下单前需要重新平衡。</p>
+<h3>每位点 3 条引物版本</h3>
+<p>第 1 条是上表的引物，另外两条只为还没被覆盖的序列追加（各 ≤4 倍简并）。这样每个位点的覆盖不会比单引物差。</p>
+<div class="tbl"><table><thead><tr><th>引物</th><th>E. coli 位置</th><th>每位点 3 条（第 1 条即上表引物，| 分隔）</th><th>总简并数</th><th>SILVA 主要门平均</th><th>SILVA 最差门</th><th>GG 主要门平均</th><th>GG 最差门</th></tr></thead><tbody><tr><td class="">A1-F</td><td class="n">11-28</td><td class="seq">GTTTGATCMTGGCTCASR | GTTTGATCCTGGCTCARS | GTTTGATYYTGGCTCAGG</td><td class="n">16</td><td class="n">90%</td><td class="n">71%</td><td class="n">90%</td><td class="n">71%</td></tr><tr><td class="">A1-R</td><td class="n">243-260</td><td class="seq">CCYCACCAACWAGCTRAT | CCCYRCCAACTAGCTAAT | CCMCACCAACTARCTAAT</td><td class="n">16</td><td class="n">87%</td><td class="n">69%</td><td class="n">88%</td><td class="n">73%</td></tr><tr><td class="">A2-F</td><td class="n">338-355</td><td class="seq">ACWYCTACGGGAGGCWGC | AYTCCTACGGGAGGCASC | ACTCCTACGGGRGGCARC</td><td class="n">16</td><td class="n">96%</td><td class="n">88%</td><td class="n">98%</td><td class="n">94%</td></tr><tr><td class="">A2-R</td><td class="n">559-576</td><td class="seq">CTTTAMGCCCARTAAWTC | CTTTACGCCCAGTRAYTC | CTTTACGCCCAGTAAKTY</td><td class="n">16</td><td class="n">92%</td><td class="n">60%</td><td class="n">92%</td><td class="n">59%</td></tr><tr><td class="">A3-F</td><td class="n">692-709</td><td class="seq">GGTGRAATSCGTAGAKAT | GGTRAAATGCGTWGATAT | RGTGAAATGCGTAGATAY</td><td class="n">16</td><td class="n">94%</td><td class="n">85%</td><td class="n">93%</td><td class="n">84%</td></tr><tr><td class="">A3-R</td><td class="n">908-925</td><td class="seq">CGTCAATTYCTTTGAGTT | CGTCAATTCCTTTRARTT | CGTCAATTCCTTTGAGYY</td><td class="n">10</td><td class="n">98%</td><td class="n">95%</td><td class="n">98%</td><td class="n">96%</td></tr><tr><td class="">A4-F</td><td class="n">947-964</td><td class="seq">GYATGYGGYTTAATTCGA | KCATGTGGTTTAATTYGA | GCATGTGGTTYAATTCGW</td><td class="n">16</td><td class="n">94%</td><td class="n">85%</td><td class="n">95%</td><td class="n">88%</td></tr><tr><td class="">A4-R</td><td class="n">1179-1196</td><td class="seq">GACGTCRTCCYCWCCTTC | GACGTCATCCCCRCCYTC | GACRTCMTCCCCACCTTC</td><td class="n">16</td><td class="n">98%</td><td class="n">93%</td><td class="n">99%</td><td class="n">94%</td></tr><tr><td class="">A5-F</td><td class="n">1331-1350</td><td class="seq">GAAGYYGGAATYGCTAGTAA | GAAGKTGGARTCGCTAGTAA | GAAGWTGGARTCGCTAGTAA</td><td class="n">16</td><td class="n">95%</td><td class="n">74%</td><td class="n">94%</td><td class="n">69%</td></tr><tr><td class="">A5-R</td><td class="n">1492-1509</td><td class="seq">GHTACCTTGTTACGACTT | GKTACCTTGTTACGACYT | GTTACCTTGYTACGACTK</td><td class="n">11</td><td class="n">95%</td><td class="n">90%</td><td class="n">97%</td><td class="n">93%</td></tr></tbody></table></div>
+
+<h2>五、与现有 5R 的对照</h2>
+<div class="tbl"><table><thead><tr><th>验证集</th><th>方案</th><th>期望信息量 bit</th><th>期望测序碱基数</th><th>平均扩出区域数</th><th>≥3 个区域</th><th>全部区域</th><th>全部扩出时的测序碱基数</th><th>最近邻距离中位数（错配数）</th><th>有 ≤2 错配邻居的序列</th></tr></thead><tbody><tr><td class="">SILVA(验证)</td><td class="">5R 现有</td><td class="n">360</td><td class="n">481</td><td class="n">2.82</td><td class="n">62%</td><td class="n">15%</td><td class="n">863</td><td class="n">39</td><td class="n">0.9%</td></tr><tr><td class="">SILVA(验证)</td><td class="">5R 现有位点，每位点 3 条</td><td class="n">535</td><td class="n">644</td><td class="n">3.72</td><td class="n">81%</td><td class="n">48%</td><td class="n">863</td><td class="n">54</td><td class="n">0.3%</td></tr><tr><td class="">SILVA(验证)</td><td class="">新设计 5 扩增子，每位点 1 条</td><td class="n">608</td><td class="n">696</td><td class="n">3.61</td><td class="n">81%</td><td class="n">40%</td><td class="n">970</td><td class="n">70</td><td class="n">0.0%</td></tr><tr><td class="">SILVA(验证)</td><td class="">新设计 5 扩增子，每位点 3 条</td><td class="n">646</td><td class="n">729</td><td class="n">3.77</td><td class="n">83%</td><td class="n">50%</td><td class="n">970</td><td class="n">72</td><td class="n">0.0%</td></tr><tr><td class="">GG留出</td><td class="">5R 现有</td><td class="n">387</td><td class="n">552</td><td class="n">3.24</td><td class="n">72%</td><td class="n">17%</td><td class="n">863</td><td class="n">92</td><td class="n">0.0%</td></tr><tr><td class="">GG留出</td><td class="">5R 现有位点，每位点 3 条</td><td class="n">555</td><td class="n">742</td><td class="n">4.29</td><td class="n">94%</td><td class="n">54%</td><td class="n">863</td><td class="n">93</td><td class="n">0.0%</td></tr><tr><td class="">GG留出</td><td class="">新设计 5 扩增子，每位点 1 条</td><td class="n">643</td><td class="n">823</td><td class="n">4.27</td><td class="n">96%</td><td class="n">48%</td><td class="n">970</td><td class="n">115</td><td class="n">0.0%</td></tr><tr><td class="">GG留出</td><td class="">新设计 5 扩增子，每位点 3 条</td><td class="n">689</td><td class="n">863</td><td class="n">4.47</td><td class="n">98%</td><td class="n">60%</td><td class="n">970</td><td class="n">118</td><td class="n">0.0%</td></tr></tbody></table></div>
+<p>“最近邻距离”：在所有扩增子都扩出的序列里随机取最多 1,500 条，量每条序列与其他序列拼接签名的最小错配数。SMURF 把 ≤2 个错配当噪声，所以有 ≤2 错配邻居的序列无法被区分。各方案参与比较的序列不完全相同，只能作相对参考。</p>
+
+<h2>六、V4 是高变区，为什么强制包含会降低信息量</h2>
+<p>V4 确实是高变区，但在这个熵指标下它并不是信息最密的区域。每个碱基的平均熵：</p>
+<div class="tbl"><table><thead><tr><th>可变区</th><th>长度 nt</th><th>总熵 bit</th><th>每个碱基平均熵 bit</th></tr></thead><tbody><tr><td class="">V1</td><td class="n">31</td><td class="n">41.5</td><td class="n">1.34</td></tr><tr><td class="">V6</td><td class="n">58</td><td class="n">72.3</td><td class="n">1.25</td></tr><tr><td class="">V2</td><td class="n">106</td><td class="n">128.5</td><td class="n">1.21</td></tr><tr><td class="">V3</td><td class="n">65</td><td class="n">76.6</td><td class="n">1.18</td></tr><tr><td class="">V9</td><td class="n">31</td><td class="n">35.9</td><td class="n">1.16</td></tr><tr><td class="">V5</td><td class="n">58</td><td class="n">66.1</td><td class="n">1.14</td></tr><tr><td class="">V8</td><td class="n">52</td><td class="n">52.5</td><td class="n">1.01</td></tr><tr><td class="">V7</td><td class="n">57</td><td class="n">55.1</td><td class="n">0.97</td></tr><tr><td class="">V4</td><td class="n">107</td><td class="n">103.3</td><td class="n">0.96</td></tr></tbody></table></div>
+<p>V4 总熵（103 bit）比 V3、V5 大，只是因为它长（107 nt）；按每个碱基算，V4 排在后面。强制 V4 之后信息量下降，原因是位置安排的机会成本，不是 V4 信息少：</p>
+<ul>
+<li><b>2×126</b>：V4 两侧的保守位点（515 和 785–806）相距 290 bp，放不进 250 bp。能放进去的是 514–709（196 bp），它自己贡献 103 bit，期望 104 bit。但它占用了原来 V3（338–576）和 V5（692–925）两个扩增子的位置（期望合计 236 bit），后面的扩增子被迫下移到 780–985（期望 87 bit）和 1050–1238（期望 75 bit），而自由最优的 947–1196 期望 133 bit。合计 607 → 504 bit。</li>
+<li><b>2×150</b>：516–805（290 bp）可以被完整测到，所以 4 个扩增子的自由最优本来就包含 V4（620 bit），强制 V4 没有任何损失。之前我写的“降低约 8%”是拿它和 5 个扩增子且没有 V4 的 665 bit 比；含 V4 的方案放不下第 5 个扩增子，因为扩增子都是 286–290 bp。</li>
+<li>熵是对整个种群逐位点的统计，不能反映“哪些位点能区分近缘种”。V4 在文献里常用于属水平分类，熵指标没有捕捉到这一点。如果你更看重 V4，这个指标会低估它的价值。</li>
+</ul>
+<p>两个读长下强制 V4 的结果：</p>
+<div class="tbl"><table><thead><tr><th>读长</th><th>K</th><th>条件</th><th>SILVA 期望信息量</th><th>GG 期望信息量</th><th>扩增子</th><th>各可变区被测到的比例 %</th></tr></thead><tbody><tr><td class="">2×126</td><td class="n">4</td><td class="">不限</td><td class="n">517</td><td class="n">549</td><td class="">11-260(250) 338-576(239) 692-925(234) 947-1196(250)</td><td class="">V1 100 V2 100 V3 100 V4 0 V5 100 V6 100 V7 100 V8 0 V9 0</td></tr><tr><td class="">2×126</td><td class="n">4</td><td class="">必须测到 V4（≥60%）</td><td class="n">475</td><td class="n">505</td><td class="">11-260(250) 514-709(196) 947-1196(250) 1331-1509(179)</td><td class="">V1 100 V2 100 V3 0 V4 100 V5 0 V6 100 V7 100 V8 0 V9 100</td></tr><tr><td class="">2×126</td><td class="n">5</td><td class="">不限</td><td class="n">608</td><td class="n">643</td><td class="">11-260(250) 338-576(239) 692-925(234) 947-1196(250) 1331-1509(179)</td><td class="">V1 100 V2 100 V3 100 V4 0 V5 100 V6 100 V7 100 V8 0 V9 100</td></tr><tr><td class="">2×126</td><td class="n">5</td><td class="">必须测到 V4（≥60%）</td><td class="n">505</td><td class="n">537</td><td class="">11-260(250) 514-709(196) 780-985(206) 1050-1238(189) 1331-1509(179)</td><td class="">V1 100 V2 100 V3 0 V4 100 V5 100 V6 0 V7 100 V8 0 V9 100</td></tr><tr><td class="">2×150</td><td class="n">4</td><td class="">不限</td><td class="n">614</td><td class="n">651</td><td class="">11-260(250) 516-805(290) 910-1195(286) 1222-1509(288)</td><td class="">V1 100 V2 100 V3 0 V4 100 V5 0 V6 100 V7 100 V8 100 V9 100</td></tr><tr><td class="">2×150</td><td class="n">4</td><td class="">必须测到 V4（≥60%）</td><td class="n">614</td><td class="n">651</td><td class="">11-260(250) 516-805(290) 910-1195(286) 1222-1509(288)</td><td class="">V1 100 V2 100 V3 0 V4 100 V5 0 V6 100 V7 100 V8 100 V9 100</td></tr><tr><td class="">2×150</td><td class="n">5</td><td class="">不限</td><td class="n">665</td><td class="n">709</td><td class="">11-260(250) 338-576(239) 692-923(232) 944-1196(253) 1222-1509(288)</td><td class="">V1 100 V2 100 V3 100 V4 0 V5 100 V6 100 V7 100 V8 100 V9 100</td></tr><tr><td class="">2×150</td><td class="n">5</td><td class="">必须测到 V4（≥60%）</td><td class="n">614</td><td class="n">651</td><td class="">11-260(250) 516-805(290) 910-1195(286) 1222-1509(288)</td><td class="">V1 100 V2 100 V3 0 V4 100 V5 0 V6 100 V7 100 V8 100 V9 100</td></tr></tbody></table></div>
+
+<h2>七、包含 V4 的推荐版本（2×150，4 个扩增子）</h2>
+<p>读长 2×150，扩增子 11–260 和 3 个 286–290 bp 的长扩增子，完整覆盖 V1、V2、V4、V6、V7、V8、V9（没有 V3 和 V5）。</p>
+<div class="tbl"><table><thead><tr><th>扩增子</th><th>起点</th><th>终点</th><th>长度 bp</th><th>完整覆盖的可变区</th><th>测序碱基数</th><th>信息量 bit</th></tr></thead><tbody><tr><td class="">A1</td><td class="n">11</td><td class="n">260</td><td class="n">250</td><td class="">V1 · V2</td><td class="n">214</td><td class="n">213</td></tr><tr><td class="">A2</td><td class="n">516</td><td class="n">805</td><td class="n">290</td><td class="">V4</td><td class="n">254</td><td class="n">191</td></tr><tr><td class="">A3</td><td class="n">910</td><td class="n">1195</td><td class="n">286</td><td class="">V6 · V7</td><td class="n">250</td><td class="n">172</td></tr><tr><td class="">A4</td><td class="n">1222</td><td class="n">1509</td><td class="n">288</td><td class="">V8 · V9</td><td class="n">252</td><td class="n">187</td></tr></tbody></table></div>
+<p>期望信息量 614 bit（单引物）/ 649 bit（每位点 3 条），而现有 5R 是 360 bit，迭代后的 5R 是 535 bit。</p>
+<div class="tbl"><table><thead><tr><th>验证集</th><th>每位点引物数</th><th>期望信息量 bit</th><th>平均扩出区域数</th><th>≥3 个区域</th><th>4 个全部</th><th>各扩增子覆盖 %</th><th>各扩增子最差门 %</th></tr></thead><tbody><tr><td class="">SILVA(验证)</td><td class="">每位点 1 条</td><td class="n">614</td><td class="n">2.91</td><td class="n">77%</td><td class="n">46%</td><td class="n">62/80/81/68</td><td class="n">44/85/88/47</td></tr><tr><td class="">SILVA(验证)</td><td class="">每位点 3 条</td><td class="n">649</td><td class="n">3.13</td><td class="n">80%</td><td class="n">58%</td><td class="n">68/85/82/77</td><td class="n">62/86/89/71</td></tr><tr><td class="">GG留出</td><td class="">每位点 1 条</td><td class="n">651</td><td class="n">3.48</td><td class="n">92%</td><td class="n">58%</td><td class="n">75/95/94/84</td><td class="n">52/90/90/54</td></tr><tr><td class="">GG留出</td><td class="">每位点 3 条</td><td class="n">684</td><td class="n">3.65</td><td class="n">95%</td><td class="n">71%</td><td class="n">81/95/96/92</td><td class="n">68/91/91/77</td></tr></tbody></table></div>
+<p>引物（单引物版本）：</p>
+<div class="tbl"><table><thead><tr><th>引物</th><th>E. coli 位置</th><th>序列 5′→3′</th><th>nt</th><th>简并数</th><th>GC</th><th>Tm °C</th><th>SILVA 主要门平均</th><th>SILVA 最差门</th><th>GG 主要门平均</th><th>GG 最差门</th></tr></thead><tbody><tr><td class="">A1-F</td><td class="n">11-28</td><td class="seq">GTTTGATCMTGGCTCASR</td><td class="n">18</td><td class="n">8</td><td class="n">0.5</td><td class="n">57.7-61.6</td><td class="n">89%</td><td class="n">70%</td><td class="n">90%</td><td class="n">71%</td></tr><tr><td class="">A1-R</td><td class="n">243-260</td><td class="seq">CCYCACCAACWAGCTRAT</td><td class="n">18</td><td class="n">8</td><td class="n">0.5</td><td class="n">56.3-63.2</td><td class="n">80%</td><td class="n">49%</td><td class="n">83%</td><td class="n">56%</td></tr><tr><td class="">A2-F</td><td class="n">516-533</td><td class="seq">TGCCAKCAGCCGCGGYRA</td><td class="n">18</td><td class="n">8</td><td class="n">0.69</td><td class="n">68.1-76.6</td><td class="n">98%</td><td class="n">93%</td><td class="n">99%</td><td class="n">98%</td></tr><tr><td class="">A2-R</td><td class="n">788-805</td><td class="seq">GACTACCVGGGTMTCTAA</td><td class="n">18</td><td class="n">6</td><td class="n">0.51</td><td class="n">54.5-60.2</td><td class="n">96%</td><td class="n">89%</td><td class="n">95%</td><td class="n">91%</td></tr><tr><td class="">A3-F</td><td class="n">910-927</td><td class="seq">CTCAAAGRAATTGACGGG</td><td class="n">18</td><td class="n">2</td><td class="n">0.47</td><td class="n">56.7-58.8</td><td class="n">98%</td><td class="n">93%</td><td class="n">98%</td><td class="n">96%</td></tr><tr><td class="">A3-R</td><td class="n">1178-1195</td><td class="seq">ACGTCRTCCYCWCCTTCC</td><td class="n">18</td><td class="n">8</td><td class="n">0.61</td><td class="n">61.2-67.3</td><td class="n">97%</td><td class="n">92%</td><td class="n">98%</td><td class="n">92%</td></tr><tr><td class="">A4-F</td><td class="n">1222-1239</td><td class="seq">GGCKRCACACRTGCTACA</td><td class="n">18</td><td class="n">8</td><td class="n">0.58</td><td class="n">60.2-69.2</td><td class="n">84%</td><td class="n">52%</td><td class="n">87%</td><td class="n">58%</td></tr><tr><td class="">A4-R</td><td class="n">1492-1509</td><td class="seq">GHTACCTTGTTACGACTT</td><td class="n">18</td><td class="n">3</td><td class="n">0.41</td><td class="n">54.2-57.3</td><td class="n">95%</td><td class="n">90%</td><td class="n">97%</td><td class="n">93%</td></tr></tbody></table></div>
+<p>3′ 端互补 ≥5 nt 的引物对：A1-R × A2-F（6 nt）；A2-F × A3-R（5 nt）；A2-F × A4-R（5 nt）。A2-F 的 Tm 高达 68–77 °C，与其他引物差 10 °C 以上。</p>
+<h3>每位点 3 条引物版本</h3>
+<div class="tbl"><table><thead><tr><th>引物</th><th>E. coli 位置</th><th>每位点 3 条（第 1 条即上表引物，| 分隔）</th><th>总简并数</th><th>SILVA 主要门平均</th><th>SILVA 最差门</th><th>GG 主要门平均</th><th>GG 最差门</th></tr></thead><tbody><tr><td class="">A1-F</td><td class="n">11-28</td><td class="seq">GTTTGATCMTGGCTCASR | GTTTGATCCTGGCTCARS | GTTTGATYYTGGCTCAGG</td><td class="n">16</td><td class="n">90%</td><td class="n">71%</td><td class="n">90%</td><td class="n">71%</td></tr><tr><td class="">A1-R</td><td class="n">243-260</td><td class="seq">CCYCACCAACWAGCTRAT | CCCYRCCAACTAGCTAAT | CCMCACCAACTARCTAAT</td><td class="n">16</td><td class="n">87%</td><td class="n">69%</td><td class="n">88%</td><td class="n">73%</td></tr><tr><td class="">A2-F</td><td class="n">516-533</td><td class="seq">TGCCAKCAGCCGCGGYRA | TGCCAGCASCCGCRGTAA | TGCCASCAGCCGCGGWAA</td><td class="n">16</td><td class="n">99%</td><td class="n">94%</td><td class="n">99%</td><td class="n">98%</td></tr><tr><td class="">A2-R</td><td class="n">788-805</td><td class="seq">GACTACCVGGGTMTCTAA | GACTACSAGGGTATCTRA | RACTACYAGGGTATCTAA</td><td class="n">14</td><td class="n">96%</td><td class="n">90%</td><td class="n">96%</td><td class="n">92%</td></tr><tr><td class="">A3-F</td><td class="n">910-927</td><td class="seq">CTCAAAGRAATTGACGGG | CTYAAAGGAATTGACGGR | CTCAAAGGAATWGRCGGG</td><td class="n">10</td><td class="n">98%</td><td class="n">94%</td><td class="n">98%</td><td class="n">96%</td></tr><tr><td class="">A3-R</td><td class="n">1178-1195</td><td class="seq">ACGTCRTCCYCWCCTTCC | ACGTCATCCCCRCCTTCM | ACRTCATCCCCMCCTTCC</td><td class="n">16</td><td class="n">98%</td><td class="n">93%</td><td class="n">98%</td><td class="n">93%</td></tr><tr><td class="">A4-F</td><td class="n">1222-1239</td><td class="seq">GGCKRCACACRTGCTACA | GGCTWCACACGTGMTACA | GGCTWCACRCGTGCTACA</td><td class="n">16</td><td class="n">93%</td><td class="n">79%</td><td class="n">94%</td><td class="n">81%</td></tr><tr><td class="">A4-R</td><td class="n">1492-1509</td><td class="seq">GHTACCTTGTTACGACTT | GKTACCTTGTTACGACYT | GTTACCTTGYTACGACTK</td><td class="n">11</td><td class="n">95%</td><td class="n">90%</td><td class="n">97%</td><td class="n">93%</td></tr></tbody></table></div>
+<ul>
+<li>这版没有 V3 和 V5；V4 扩增子（516–805）和另外两个长扩增子都是 286–290 bp，在 FFPE 降解样本里扩增效率会下降，也可能在各区域 reads 占比里偏低（现有 5R 里 244 bp 的 R3 只有 4%–11%）。</li>
+<li>首个扩增子（11–260）和末个扩增子（1222–1509）的引物较弱：最差门覆盖 44% 和 47%（单引物）/ 62% 和 71%（每位点 3 条）。</li>
+<li>读长必须至少是 2×150；如果只有 2×126，290 bp 的扩增子中间会有 38 nt 测不到。</li>
+</ul>
+
+<h2>八、局限</h2>
+<ul>
+<li>熵是代理指标：位点保守度高低不等于能区分到种。真正检验要用已知组成的标准菌群或带种级分类的参考集。</li>
+<li>数据库是 Greengenes 13_8 和 SILVA 128，不是最新版本；两端（1–100 位、1450 位以后）序列数据少，熵和覆盖率的估计不如中间可靠。</li>
+<li>设计和验证的序列限定为近全长，可能偏向容易测通的类群。</li>
+<li>首个扩增子的两条引物对主要门的最差覆盖只有 44%（单条）/ 62%（3 条），古菌几乎检不到。</li>
+<li>5 个扩增子都接近 250 bp，按示例数据里“长扩增子占比低”的规律，各区域的 reads 可能比现有 5R 更均衡也可能更偏，没有实验数据，需要用标准菌群验证。</li>
+<li>Tm 不均匀，部分引物有 3′ 端互补；没有检查对人基因组和线粒体的特异性。</li>
+<li>k-mer 数据库必须用新引物重建；SMURF 需要把区域数从 5 的硬编码里解放出来（<code>scott_format_newer_func.m</code> 的 <code>nR = 5</code>）。</li>
+</ul>
+<footer>脚本：<code>python_5R/info_design.py</code>、<code>python_5R/iterate_5R.py</code>；数据：<code>docs/primer_design/info_*.csv</code>、<code>designs_info.json</code>。</footer>
+</main></div>

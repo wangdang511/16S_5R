@@ -1,0 +1,139 @@
+<title>缩短 V6V7 和 V8V9</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (~70ch) with full-bleed figures; a sticky step index on wide screens.
+   Color: lab-paper neutrals tinted toward the cobalt accent; nucleotide colors (A/C/G/T, chromatogram convention) as the subject detail. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6675; --line:#d7dde5;
+  --accent:#2747c8; --accent-soft:#e3e8fb;
+  --A:#1f8a4c; --C:#2f62d6; --G:#b07800; --T:#c8372d;
+  --ok:#1f8a4c; --warn:#b07800; --bad:#c8372d;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}.toc{display:none}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:13px;line-height:1.5}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 10px;border-left:2px solid var(--line)}
+.toc a:hover,.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent);outline:none}
+.toc .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+main{min-width:0}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(30px,5vw,44px);line-height:1.2;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--serif);font-weight:800;font-size:26px;line-height:1.3;margin:64px 0 8px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-size:18px;font-weight:700;margin:32px 0 6px}
+p,li{max-width:68ch}
+p{margin:10px 0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+.seq{font-family:var(--mono);letter-spacing:.04em;font-size:13px;white-space:nowrap}
+.sA{color:var(--A)}.sC{color:var(--C)}.sG{color:var(--G)}.sT{color:var(--T)}.sX{color:var(--accent);font-weight:600}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0;overflow-x:auto}
+.figure figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:none}
+svg text{font-family:var(--sans)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.fact{border-top:2px solid var(--ink);padding-top:8px}
+.fact b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.n{text-align:right;font-family:var(--mono);font-size:13px}
+.tbl{overflow-x:auto;margin:14px 0}
+
+/* pipeline steps */
+.steps{list-style:none;padding:0;margin:20px 0;display:grid;gap:0;counter-reset:st}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;position:relative;padding-bottom:26px}
+.step:before{counter-increment:st;content:counter(st);width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--mono);z-index:1}
+.step:after{content:"";position:absolute;left:17px;top:38px;bottom:0;width:2px;background:var(--line)}
+.step:last-child:after{display:none}
+.step h3{margin:4px 0 2px}
+.step .file{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.step .io{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface);white-space:nowrap}
+.pill.k{border-color:var(--accent);color:var(--accent)}
+
+.formula{font-family:var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;font-size:14px;line-height:1.9}
+.note{border-left:3px solid var(--warn);padding:6px 14px;margin:14px 0;background:var(--surface);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p,.card li{font-size:14.5px}
+.card ul{padding-left:18px;margin:6px 0}
+.pri{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:4px;margin-right:6px;vertical-align:2px}
+.p1{background:var(--bad);color:var(--surface)}.p2{background:var(--warn);color:var(--surface)}.p3{background:var(--muted);color:var(--surface)}
+.bugs td:first-child{white-space:nowrap}
+.heat td.h{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink)}
+footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:no-preference){.toc a{transition:color .15s,border-color .15s}}
+</style>
+<div class="wrap"><main style="grid-column:1/-1;width:100%;max-width:980px;margin-inline:auto">
+<header>
+  <div class="eyebrow">16S_5R · 引物设计</div>
+  <h1>缩短 V6·V7（290 bp）和 V8·V9（288 bp）</h1>
+  <p class="lede">可以缩短，而且不影响整体质量：V6·V7 缩到 229 bp，V8·V9 缩到 185 bp，覆盖率和属准确率没有下降，代价是多 2 条寡核苷酸，V8·V9 不再包含大部分 V9。这是计算机模拟，没有实验验证。</p>
+</header>
+
+<h2>一、结论</h2>
+<ul>
+<li><b>V6·V7：906–1195（290 bp）→ 967–1195（229 bp）</b>：正向引物移到 967F 附近的保守位点（3′ 端在 985），反向引物不动。理想准确率 95.33% → 95.31%，属准确率（算入扩增失败）持平或略高，需要 2 条正向引物（原来 1 条）。</li>
+<li><b>V8·V9：1223–1510（288 bp）→ 1223–1407（185 bp）</b>：反向引物从 1492 附近移到 1389–1407（1391R 附近的保守位点）。覆盖率反而更好（A5 扩增子 SILVA 76% → 79%，GG 94% → 96%），理想准确率 95.31% → 95.19%（−0.12 个百分点），需要 2 条反向引物（原来 1 条）。代价是 1408–1491 不再被测到，V9 区（约 1435–1465）基本丢掉，所以这个扩增子实际是 V8（可算 V8 加一点 V9 的边）。</li>
+<li>如果不想丢 V9，只做 V6·V7 的缩短即可（第一行和第二行的差别）。V8·V9 的另一个选择是把反向引物只往里移几个碱基（1485–1491 附近，覆盖率 93–96%），只能缩短不到 25 bp，意义不大。</li>
+<li>理想准确率对扩增子内部几乎不敏感：在 928–1176 内部去掉一半，损失 ≤0.15 个百分点，因为其他 4 个扩增子已经把大部分序列分开了；真正的约束是缩短后的引物位点必须仍然保守。</li>
+</ul>
+
+<h2>二、比较（5 个扩增子，留出集）</h2>
+<div class="tbl"><table><thead><tr><th>方案</th><th>寡核苷酸</th><th>展开数</th><th>Tm °C</th><th>扩增子范围（bp）</th><th>扩增子覆盖 SILVA</th><th>扩增子覆盖 GG</th><th>全部扩出 SILVA / GG</th><th>理想准确率</th><th>属准确率（三种规则）</th></tr></thead><tbody><tr><td class="">原（A4 290 bp，A5 288 bp）</td><td class="n">14</td><td class="n">86</td><td class="n">54.8–65.8</td><td class="">8-265(258) 338-523(186) 556-804(249) 906-1195(290) 1223-1510(288)</td><td class="n">73/79/78/78/76</td><td class="n">87/91/91/91/94</td><td class="n">56.2% / 68.7%</td><td class="n">95.33%</td><td class="n">87.8 / 88.1 / 90.8%</td></tr><tr><td class="">A4 缩短（229 bp）</td><td class="n">15</td><td class="n">102</td><td class="n">54.8–65.7</td><td class="">8-265(258) 338-523(186) 556-804(249) 967-1195(229) 1223-1510(288)</td><td class="n">73/79/78/77/76</td><td class="n">87/91/91/91/94</td><td class="n">56.0% / 68.4%</td><td class="n">95.31%</td><td class="n">88.8 / 88.6 / 90.9%</td></tr><tr><td class="">A4 缩短，保留原 A4-R</td><td class="n">15</td><td class="n">98</td><td class="n">54.8–65.8</td><td class="">8-265(258) 338-523(186) 556-804(249) 967-1195(229) 1223-1510(288)</td><td class="n">73/79/78/77/76</td><td class="n">87/91/91/90/94</td><td class="n">55.6% / 67.9%</td><td class="n">95.31%</td><td class="n">88.8 / 88.6 / 90.8%</td></tr><tr><td class="">A4 + A5 都缩短（229 / 185 bp）</td><td class="n">16</td><td class="n">105</td><td class="n">54.8–66.4</td><td class="">8-265(258) 338-523(186) 556-804(249) 967-1195(229) 1223-1407(185)</td><td class="n">73/79/78/77/79</td><td class="n">87/91/91/91/96</td><td class="n">57.7% / 69.6%</td><td class="n">95.19%</td><td class="n">87.9 / 88.1 / 91.3%</td></tr></tbody></table></div>
+<p>属准确率的三列是三种“扩增失败也算”的比较规则；理想列是假设所有扩增子都扩出。这些指标对小差别不稳（之前有过 4 扩增子理想准确率反而升高的例子），差在 0.1–0.2 个百分点以内的，不要当作真实差别。</p>
+
+<h2>三、改动的引物（其余 10 个位点的引物不变）</h2>
+<div class="tbl"><table><thead><tr><th>订购名称</th><th>区域</th><th>序列 5′→3′</th><th>nt</th><th>E. coli 位置</th><th>Tm °C（展开范围）</th><th>展开数</th><th>人基因组位点 / 展开序列（≤2 错配）</th></tr></thead><tbody><tr><td class="">SMURF5-A4-F.1</td><td class="">V6·V7</td><td class="seq">MWACGCGARGAACCTTACC</td><td class="n">19</td><td class="n">967–985</td><td class="">60.2（58.3–62.1）</td><td class="n">8</td><td class="n">1</td></tr><tr><td class="">SMURF5-A4-F.2</td><td class="">V6·V7</td><td class="seq">MWACMCGAAGAACCTTACC</td><td class="n">19</td><td class="n">967–985</td><td class="">57.2（55.3–59.2）</td><td class="n">8</td><td class="n">2.8</td></tr><tr><td class="">SMURF5-A4-R</td><td class="">V6·V7</td><td class="seq">ACGTCRTCCYCACCTTCCY</td><td class="n">19</td><td class="n">1177–1195</td><td class="">64.5（61.4–67.6）</td><td class="n">8</td><td class="n">17</td></tr><tr><td class="">SMURF5-A5-R.1</td><td class="">V8（不含 V9 大部分）</td><td class="seq">GACGGGCGGTGTGTACAAD</td><td class="n">19</td><td class="n">1389–1407</td><td class="">64.3（64.0–64.6）</td><td class="n">3</td><td class="n">1.7</td></tr><tr><td class="">SMURF5-A5-R.2</td><td class="">V8（不含 V9 大部分）</td><td class="seq">GACGGGCGGTGTGTRCAAS</td><td class="n">19</td><td class="n">1389–1407</td><td class="">66.4（64.6–68.3）</td><td class="n">4</td><td class="n">2.2</td></tr></tbody></table></div>
+<ul>
+<li>池内所有寡核苷酸（含展开）两两检查，没有严重二聚体或发夹；平均 Tm 54.8–66.4 °C（原来 54.8–65.8 °C）。A5-R.2 最热，平均 66.4 °C。</li>
+<li>人基因组（hg19）：新引物每个展开序列只有 1–3 个近似位点（≤2 个错配）；整池 ≤2 个错配有 2,946 个位点、1 个潜在产物（原来 0 个），≤3 个错配 62 个潜在产物（原来 56 个）；线粒体命中不变，没有潜在产物。</li>
+<li>混合比例仍按“每个位点总量相同、位点内按单独覆盖率分”：A4-F 60% / 40%，A5-R 50% / 50%；完整订购清单在 <code>docs/primer_design/order_list_5amp_short.csv</code>。</li>
+</ul>
+
+<h2>五、内联 UDP（每端 10 bp）+ 2×150 读长的核对</h2>
+<p>每条读段先是 10 bp UDP，再是引物，再是扩增子序列，所以每条读段能读到的扩增子长度是 140 bp（含引物）。两条读段合起来最多覆盖 280 bp；扩增子比这长，中间就有测不到的缺口，缺口长度 = 扩增子长度 − 280。读段对之间没有重叠，所以也不能靠合并读段补上。</p>
+<div class="tbl"><table><thead><tr><th>方案</th><th>V6·V7 缺口</th><th>V8·V9 缺口</th><th>V6·V7 测通</th><th>V8·V9 测通</th></tr></thead><tbody><tr><td class="">原（V6·V7 290 / V8·V9 288）</td><td class="">10 bp</td><td class="">8 bp</td><td class="">否</td><td class="">否</td></tr><tr><td class="">V6·V7 缩短（229 / 288）</td><td class="n">0</td><td class="">8 bp</td><td class="">是</td><td class="">否</td></tr><tr><td class="">V6·V7 缩短 + V8 缩短（229 / 185）</td><td class="n">0</td><td class="n">0</td><td class="">是</td><td class="">是</td></tr><tr><td class="">V6·V7 缩短 + V8·V9 反向 1483（229 / 279）</td><td class="n">0</td><td class="n">0</td><td class="">是</td><td class="">是</td></tr><tr><td class="">V6·V7 缩短 + V8·V9 反向 1485（229 / 281）</td><td class="n">0</td><td class="">1 bp</td><td class="">是</td><td class="">否</td></tr></tbody></table></div>
+<ul>
+<li><b>原方案</b>：V6·V7（290 bp）缺口 10 bp（1046–1055），V8·V9（288 bp）缺口 8 bp（1363–1370）；其他 3 个扩增子（258 / 186 / 249 bp）都能测通。<b>V6·V7 的缺口在 V6 和 V7 之间的保守间隔区</b>（1044–1116，缺口 10 个碱基平均熵只有 0.15 bit，只有 1 个位点有变异）；<b>V8·V9 的缺口不是保守区</b>（平均熵 0.68 bit，62% 的位点有变异，在 V8 和 V9 之间），更正：我之前把这两个缺口都说成保守区，V8·V9 那个说错了。</li>
+<li>把这些缺口位点从评估里去掉，理想准确率 95.33% → 95.32%，属准确率（三种规则）也基本不变（87.9 / 88.4 / 91.0%），所以缺口对属鉴定的影响可以忽略；真正的风险是下游流程需要合并读段（会丢掉这两个扩增子的读段对）。SMURF 把 R1 和反向互补的 R2 直接拼接，不需要重叠。</li>
+<li><b>V6·V7 缩到 229 bp</b>：没有缺口，两条读段重叠约 51 bp；<b>V8·V9 缩到 185 bp</b>：没有缺口，重叠约 95 bp，但丢掉 V9。</li>
+<li><b>想保留 V9 又要 ≤280 bp</b>：试了把 V8·V9 的反向引物移到 1483（扩增子 279 bp）和 1485（281 bp，缺口 1 bp），但覆盖率明显下降（A5 扩增子 SILVA 74–75%，GG 88–92%，对比原来的 76% / 94%），不推荐。</li>
+<li>所有扩增子都比 140 bp 长，所以读段不会读穿到另一端的 UDP 和接头。</li>
+</ul>
+<h2>六、V3（186 bp）能不能适当延长，且不和 V1·V2、V4 重叠</h2>
+<p>V1·V2 的反向引物 5′ 端到 265，V4 的正向引物从 556 开始，按“相邻扩增子之间至少留 20 bp”，V3 的范围只能在 286–535 之间（原来是 338–523）。</p>
+<ul>
+<li><b>正向一侧（往 V2 方向）延不动</b>：把正向引物 3′ 端放在 304–336 之间，覆盖率都没有达到 90%（这一段的保守性差）；最远只能到 3′ 端 339–346（引物 5′ 端到约 321–328），覆盖率约 90–91%（原来约 95%），展开数 14–16，没有划算的收益。</li>
+<li><b>反向一侧（往 V4 方向）可以延 12 bp</b>：反向引物从 505–523 换成 <code>TATTACCGCGRCTGCTGGCA</code>（516–535，20 nt，2 个展开序列，覆盖率 96%，平均 Tm 66.9 °C，比池里原来最热的 65.7 °C 高约 1 °C），V3 扩增子变成 338–535（198 bp），离 V4 正向引物（556）21 bp。</li>
+</ul>
+<div class="tbl"><table><thead><tr><th>方案（均基于 V6·V7 缩短版）</th><th>寡核苷酸</th><th>展开数</th><th>Tm °C</th><th>扩增子覆盖 SILVA</th><th>扩增子覆盖 GG</th><th>全部扩出 SILVA / GG</th><th>理想准确率</th><th>属准确率（三种规则）</th></tr></thead><tbody><tr><td class="">原（V3 338–523，186 bp）</td><td class="n">15</td><td class="n">102</td><td class="n">54.8–65.7</td><td class="n">73/79/78/77/76</td><td class="n">87/91/91/91/94</td><td class="n">56.0% / 68.4%</td><td class="n">95.31%</td><td class="n">88.8 / 88.6 / 90.9%</td></tr><tr><td class="">V3 反向延长（338–535，198 bp）</td><td class="n">15</td><td class="n">98</td><td class="n">54.8–66.9</td><td class="n">73/80/78/77/76</td><td class="n">87/91/91/91/94</td><td class="n">56.2% / 68.8%</td><td class="n">95.36%</td><td class="n">89.1 / 89.0 / 90.9%</td></tr><tr><td class="">V3 两端延长（327–535，209 bp）</td><td class="n">16</td><td class="n">110</td><td class="n">54.8–66.9</td><td class="n">73/76/78/77/76</td><td class="n">87/89/91/91/94</td><td class="n">53.6% / 66.6%</td><td class="n">95.36%</td><td class="n">88.7 / 88.5 / 91.1%</td></tr></tbody></table></div>
+<p>结论：延长是可行的，但只有 +12 bp，收益很小：理想准确率 95.31% → 95.36%（+0.05 个百分点），V3 扩增子覆盖率 SILVA 79% → 80%，属准确率（三种规则）88.8 / 88.6 / 90.9% → 89.1 / 89.0 / 90.9%；寡核苷酸数不变（15），展开数 102 → 98，Tm 上限 65.7 → 66.9 °C。把正向也延长（327–535，209 bp）反而让 V3 覆盖率降低（SILVA 79% → 76%，GG 91% → 89%），不推荐。这个新反向引物我还没有做人基因组脱靶检查和 Tm 均衡，下单前建议补。</p>
+<h2>七、限制</h2>
+<ul>
+<li>覆盖率按“最多 1 个错配、3′ 端 3 个碱基匹配”的序列规则算；数据库是 Greengenes 13_8 和 SILVA 128。</li>
+<li>缩短后各扩增子长度是 258 / 186 / 249 / 229 / 185 bp，混合比例没有校正长度差异引起的扩增偏倚，需要用已知组成的样本实测。</li>
+<li>A5-R 两条的 Tm 偏高（64–66 °C），退火温度要照顾这个范围。</li>
+</ul>
+<footer>脚本：<code>python_5R/explore/short*.py</code>；数据：<code>docs/primer_design/short_*.csv</code>、<code>order_list_5amp_short.csv</code>。</footer>
+</main></div>

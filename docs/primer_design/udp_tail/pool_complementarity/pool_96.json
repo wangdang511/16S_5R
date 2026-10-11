@@ -1,0 +1,119 @@
+{
+ "头尾 i5_a×i7_b（含 a=b 锅柄）": {
+  "n": 9216,
+  "lcs_hist": {
+   "1": 50,
+   "2": 3548,
+   "3": 4069,
+   "4": 1240,
+   "5": 261,
+   "6": 43,
+   "7": 5
+  },
+  "worst_dg60": -5.429795800724555,
+  "worst_dg60_pair": [
+   "UDP0260:i5",
+   "UDP0241:i7",
+   "ACCGCGCAAT",
+   "TGAACGCGGA"
+  ],
+  "worst_dg72": -3.6911121735556955,
+  "max_lcs": 7,
+  "max_lcs_pair": [
+   "UDP0367:i5",
+   "UDP0043:i7",
+   "GTGGCGAGAC",
+   "CCATCTCGCC"
+  ],
+  "n_dg60_le6": 0,
+  "n_dg60_le4": 9,
+  "n_dg60_le2": 399
+ },
+ "锅柄（仅 a=b）i5_a×i7_a": {
+  "n": 96,
+  "lcs_hist": {
+   "2": 43,
+   "3": 41,
+   "4": 9,
+   "5": 2,
+   "6": 1
+  },
+  "worst_dg60": -3.086635800717893,
+  "worst_dg60_pair": [
+   "UDP0162:i5",
+   "UDP0162:i7",
+   "TCCTGACCGT",
+   "TTAACGGTGT"
+  ],
+  "worst_dg72": -1.991152173548795,
+  "max_lcs": 6,
+  "max_lcs_pair": [
+   "UDP0060:i5",
+   "UDP0060:i7",
+   "ACAGTTCCAG",
+   "TTACCTGGAA"
+  ],
+  "n_dg60_le6": 0,
+  "n_dg60_le4": 0,
+  "n_dg60_le2": 2
+ },
+ "异源双链 i5_a×i5_b": {
+  "n": 9120,
+  "lcs_hist": {
+   "1": 72,
+   "2": 3466,
+   "3": 4014,
+   "4": 1262,
+   "5": 260,
+   "6": 40,
+   "7": 6
+  },
+  "worst_dg60": -5.337447250900703,
+  "worst_dg60_pair": [
+   "UDP0181:i5",
+   "UDP0160:i5",
+   "AATTGGCGGA",
+   "TGGACCGCCA"
+  ],
+  "worst_dg72": -3.696292716939446,
+  "max_lcs": 7,
+  "max_lcs_pair": [
+   "UDP0340:i5",
+   "UDP0316:i5",
+   "CACCGAGGAA",
+   "TCCTCGGACT"
+  ],
+  "n_dg60_le6": 0,
+  "n_dg60_le4": 7,
+  "n_dg60_le2": 341
+ },
+ "异源双链 i7_a×i7_b": {
+  "n": 9120,
+  "lcs_hist": {
+   "1": 58,
+   "2": 3540,
+   "3": 4096,
+   "4": 1148,
+   "5": 222,
+   "6": 56
+  },
+  "worst_dg60": -4.66036080072121,
+  "worst_dg60_pair": [
+   "UDP0022:i7",
+   "UDP0354:i7",
+   "GAGCGCAATA",
+   "AGCGCTGTGT"
+  ],
+  "worst_dg72": -3.1028771735522316,
+  "max_lcs": 6,
+  "max_lcs_pair": [
+   "UDP0173:i7",
+   "UDP0211:i7",
+   "AGCGGTGGAC",
+   "CCACCGGAGT"
+  ],
+  "n_dg60_le6": 0,
+  "n_dg60_le4": 11,
+  "n_dg60_le2": 353
+ }
+}

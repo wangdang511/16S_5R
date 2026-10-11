@@ -1,0 +1,131 @@
+{
+ "A1-F": {
+  "o": "F",
+  "st": 11,
+  "L": 18,
+  "single": [
+   "GTTTGATCMTGGCTCASR"
+  ],
+  "multi": [
+   "GTTTGATCMTGGCTCASR",
+   "GTTTGATCCTGGCTCAWR"
+  ]
+ },
+ "A1-R": {
+  "o": "R",
+  "st": 243,
+  "L": 18,
+  "single": [
+   "CCYCACCAACWAGCTRAT"
+  ],
+  "multi": [
+   "CCYCACCAACWAGCTRAT",
+   "CCYTACCAACTAGCTRAT",
+   "CCCCRCCAACTASCTAAT"
+  ]
+ },
+ "A2-F": {
+  "o": "F",
+  "st": 337,
+  "L": 18,
+  "single": [
+   "KACWCCTACGGGAGGCWG"
+  ],
+  "multi": [
+   "KACWCCTACGGGAGGCWG",
+   "CACWTCTAMGGAAGGCAG",
+   "RACTCCTACGGGWGGCAG"
+  ]
+ },
+ "A2-R": {
+  "o": "R",
+  "st": 513,
+  "L": 18,
+  "single": [
+   "CCGCGGCTGCTGGCACRD"
+  ],
+  "multi": [
+   "CCGCGGCTGCTGGCACRD",
+   "CCGCGGCTGCTGGCACYR",
+   "CCGCGGBTGCTGGCACGT"
+  ]
+ },
+ "A3-F": {
+  "o": "F",
+  "st": 558,
+  "L": 18,
+  "single": [
+   "GGAWTYAYTGGGCGTAAA"
+  ],
+  "multi": [
+   "GGAWTYAYTGGGCGTAAA",
+   "GGAWTYATTGGGTTTAAA",
+   "RAAGTTGTTGCRGTTAAA"
+  ]
+ },
+ "A3-R": {
+  "o": "R",
+  "st": 785,
+  "L": 18,
+  "single": [
+   "TACCRGGGTATCTAADCC"
+  ],
+  "multi": [
+   "TACCRGGGTATCTAADCC",
+   "TASGACGGTATCTRATCG",
+   "TACCMGGGTATCTAATCY"
+  ]
+ },
+ "A4-F": {
+  "o": "F",
+  "st": 910,
+  "L": 18,
+  "single": [
+   "CTCAAAGRAATTGACGGG"
+  ],
+  "multi": [
+   "CTCAAAGRAATTGACGGG",
+   "CTYAAAGGAATTGACGGR",
+   "CTCAAAGGAATTGRCRGG"
+  ]
+ },
+ "A4-R": {
+  "o": "R",
+  "st": 1178,
+  "L": 18,
+  "single": [
+   "ACGTCRTCCYCWCCTTCC"
+  ],
+  "multi": [
+   "ACGTCRTCCYCWCCTTCC",
+   "TTATTGCCKCMAACTTCC",
+   "ACGTCRTCCCCRCCTTCC"
+  ]
+ },
+ "A5-F": {
+  "o": "F",
+  "st": 1222,
+  "L": 18,
+  "single": [
+   "GGCKRCACACRTGCTACA"
+  ],
+  "multi": [
+   "GGCKRCACACRTGCTACA",
+   "GGCTDCACGCGTGCTACA",
+   "GGCTWCACACGTGMTACA"
+  ]
+ },
+ "A5-R": {
+  "o": "R",
+  "st": 1492,
+  "L": 18,
+  "single": [
+   "GHTACCTTGTTACGACTT"
+  ],
+  "multi": [
+   "GHTACCTTGTTACGACTT",
+   "GRWACCTTGTTACGACTT",
+   "GATACYTTGTTACGACYT"
+  ]
+ }
+}

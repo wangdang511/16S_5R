@@ -1,0 +1,22 @@
+db,phylum,n,A4-F 原,A4-F 新,A4-R 原,A4-R 新
+GG,Actinobacteria,97,0.948,0.969,0.959,0.969
+GG,Bacteroidetes,412,0.976,0.985,0.915,0.915
+GG,Chloroflexi,45,1.0,0.933,0.933,0.978
+GG,Cyanobacteria,38,0.974,0.974,0.947,0.974
+GG,Firmicutes,671,0.964,0.957,0.985,0.99
+GG,Planctomycetes,88,0.966,0.955,1.0,1.0
+GG,Proteobacteria,868,0.941,0.923,0.935,0.945
+GG,Spirochaetes,53,0.981,0.943,0.981,0.981
+GG,Tenericutes,38,0.947,0.632,0.605,0.763
+GG,Verrucomicrobia,58,0.966,1.0,0.966,0.966
+SILVA,Acidobacteria,254,0.969,0.969,1.0,1.0
+SILVA,Actinobacteria,406,0.978,0.983,0.973,0.973
+SILVA,Bacteroidetes,947,0.979,0.99,0.881,0.882
+SILVA,Chloroflexi,193,0.979,0.938,0.891,0.917
+SILVA,Cyanobacteria,316,0.94,0.861,0.835,0.921
+SILVA,Firmicutes,1269,0.979,0.976,0.976,0.98
+SILVA,Planctomycetes,160,0.969,0.919,0.994,0.994
+SILVA,Proteobacteria,2822,0.969,0.951,0.975,0.981
+SILVA,Spirochaetes,48,0.979,0.896,1.0,1.0
+SILVA,Tenericutes,51,0.98,0.843,0.843,0.922
+SILVA,Verrucomicrobia,113,0.965,1.0,1.0,1.0

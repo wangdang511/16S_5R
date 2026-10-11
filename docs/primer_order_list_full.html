@@ -1,0 +1,130 @@
+<title>完整引物订购清单</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (~70ch) with full-bleed figures; a sticky step index on wide screens.
+   Color: lab-paper neutrals tinted toward the cobalt accent; nucleotide colors (A/C/G/T, chromatogram convention) as the subject detail. */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6675; --line:#d7dde5;
+  --accent:#2747c8; --accent-soft:#e3e8fb;
+  --A:#1f8a4c; --C:#2f62d6; --G:#b07800; --T:#c8372d;
+  --ok:#1f8a4c; --warn:#b07800; --bad:#c8372d;
+  --serif:"Noto Serif SC","Songti SC","SimSun",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#171e27; --ink:#e4e9f0; --muted:#9aa6b5; --line:#2b3542;
+  --accent:#8ea4ff; --accent-soft:#1f2948;
+  --A:#4cc47f; --C:#6e98ff; --G:#e0a82e; --T:#ff7569;
+  --ok:#4cc47f; --warn:#e0a82e; --bad:#ff7569; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}.toc{display:none}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:13px;line-height:1.5}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 10px;border-left:2px solid var(--line)}
+.toc a:hover,.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent);outline:none}
+.toc .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+main{min-width:0}
+h1{font-family:var(--serif);font-weight:800;font-size:clamp(30px,5vw,44px);line-height:1.2;margin:0 0 12px;text-wrap:balance}
+h2{font-family:var(--serif);font-weight:800;font-size:26px;line-height:1.3;margin:64px 0 8px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-size:18px;font-weight:700;margin:32px 0 6px}
+p,li{max-width:68ch}
+p{margin:10px 0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+.seq{font-family:var(--mono);letter-spacing:.04em;font-size:13px;white-space:nowrap}
+.sA{color:var(--A)}.sC{color:var(--C)}.sG{color:var(--G)}.sT{color:var(--T)}.sX{color:var(--accent);font-weight:600}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0;overflow-x:auto}
+.figure figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:none}
+svg text{font-family:var(--sans)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.fact{border-top:2px solid var(--ink);padding-top:8px}
+.fact b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.n{text-align:right;font-family:var(--mono);font-size:13px}
+.tbl{overflow-x:auto;margin:14px 0}
+
+/* pipeline steps */
+.steps{list-style:none;padding:0;margin:20px 0;display:grid;gap:0;counter-reset:st}
+.step{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;position:relative;padding-bottom:26px}
+.step:before{counter-increment:st;content:counter(st);width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--mono);z-index:1}
+.step:after{content:"";position:absolute;left:17px;top:38px;bottom:0;width:2px;background:var(--line)}
+.step:last-child:after{display:none}
+.step h3{margin:4px 0 2px}
+.step .file{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.step .io{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;background:var(--surface);white-space:nowrap}
+.pill.k{border-color:var(--accent);color:var(--accent)}
+
+.formula{font-family:var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0;overflow-x:auto;font-size:14px;line-height:1.9}
+.note{border-left:3px solid var(--warn);padding:6px 14px;margin:14px 0;background:var(--surface);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p,.card li{font-size:14.5px}
+.card ul{padding-left:18px;margin:6px 0}
+.pri{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:4px;margin-right:6px;vertical-align:2px}
+.p1{background:var(--bad);color:var(--surface)}.p2{background:var(--warn);color:var(--surface)}.p3{background:var(--muted);color:var(--surface)}
+.bugs td:first-child{white-space:nowrap}
+.heat td.h{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink)}
+footer{margin-top:64px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:no-preference){.toc a{transition:color .15s,border-color .15s}}
+</style>
+<div class="wrap"><main style="grid-column:1/-1;width:100%;max-width:1040px;margin-inline:auto">
+<header>
+  <div class="eyebrow">16S_5R · 引物设计</div>
+  <h1>完整引物订购清单（推荐版 + 备选）</h1>
+  <p class="lede">推荐 18 条寡核苷酸（14 条核心 + 4 条支原体补充），展开序列 118 个，覆盖 V1·V2、V3、V4、V6·V7、V8·V9 五个区域。其中 3 条补充“建议”订，1 条“可选”。V3 推荐长版（338–535 bp 198），V6·V7 推荐保留原来的 906 正向引物（290 bp）。这是计算机设计，没有实验验证。</p>
+</header>
+
+<p style="border:1px solid var(--warn);background:var(--surface);padding:10px 14px;border-radius:8px"><b>更正（相对上一版）：</b>V3 正向引物 A2-F.1 由 <code>ACTYCTACGGGWGGCAGCA</code> 改为 <code>ACWYCTACGGGWGGCAGCA</code>（第 340 位 T→W）。上一版在 5′ 端延长了 3 个碱基（为了降低人基因组脱靶），但新增的碱基让浮霉菌门（Planctomycetes）在这个位点几乎全部不匹配（Greengenes 3%，SILVA 28%）；我之前只看了各主要门的平均覆盖率，没有看最差的门。改后浮霉菌门恢复到 79–93%，V3 扩增子覆盖 Greengenes 91% → 95%，5 个扩增子全部扩出 SILVA 57.7% → 58.4%、Greengenes 70.2% → 72.1%；展开数 114 → 118，A2-F.1 的人基因组命中仍是 8.2 个/展开序列，没有严重二聚体。</p>
+<h2>一、推荐订购清单</h2>
+<div class="tbl"><table><thead><tr><th>订购名称</th><th>建议</th><th>区域</th><th>序列 5′→3′（IUPAC）</th><th>nt</th><th>E. coli 位置</th><th>Tm °C（展开范围）</th><th>展开数</th><th>人基因组位点 / 展开序列（≤2 错配）</th><th>µL 母液（含补充）</th><th>µL 母液（不含补充）</th></tr></thead><tbody><tr><td class="">SMURF5-A1-F</td><td class="">必订</td><td class="">V1·V2</td><td class="seq">AGRGTTTGATYMTGGCT</td><td class="n">17</td><td class="n">8–24</td><td class="">54.8（50.6–58.7）</td><td class="n">8</td><td class="n">291.1</td><td class="n">2.50</td><td class="n">2.50</td></tr><tr><td class="">SMURF5-A1-R.1</td><td class="">必订</td><td class="">V1·V2</td><td class="seq">TTACCYCACCAACWARCT</td><td class="n">18</td><td class="n">246–263</td><td class="">56.4（53.1–59.8）</td><td class="n">8</td><td class="n">28.1</td><td class="n">1.01</td><td class="n">1.12</td></tr><tr><td class="">SMURF5-A1-R.2</td><td class="">必订</td><td class="">V1·V2</td><td class="seq">TTACCCCRCCAACTABCT</td><td class="n">18</td><td class="n">246–263</td><td class="">58.9（55.3–61.7）</td><td class="n">6</td><td class="n">18.7</td><td class="n">0.79</td><td class="n">0.88</td></tr><tr><td class="">SMURF5-A1-R.3</td><td class="">必订</td><td class="">V1·V2</td><td class="seq">CGTTACCYTACCAACTARYT</td><td class="n">20</td><td class="n">246–265</td><td class="">56.8（54.0–59.9）</td><td class="n">8</td><td class="n">1.1</td><td class="n">0.45</td><td class="n">0.50</td></tr><tr><td class="">SMURF5-A1-R.4（补充）</td><td class="">可选</td><td class="">V1·V2</td><td class="seq">CATTACCCYACCAACTARYT</td><td class="n">20</td><td class="n">246–265</td><td class="">56.8（53.3–60.5）</td><td class="n">8</td><td class="n">2.9</td><td class="n">0.25</td><td class="n">0.00</td></tr><tr><td class="">SMURF5-A2-F.1</td><td class="">必订</td><td class="">V3</td><td class="seq">ACWYCTACGGGWGGCAGCA</td><td class="n">19</td><td class="n">338–356</td><td class="">65.8（64.4–67.6）</td><td class="n">8</td><td class="n">8.2</td><td class="n">2.25</td><td class="n">2.50</td></tr><tr><td class="">SMURF5-A2-F.2（补充）</td><td class="">建议</td><td class="">V3</td><td class="seq">ACTCCTACGGGAAGCASMA</td><td class="n">19</td><td class="n">338–356</td><td class="">62.9（61.4–64.4）</td><td class="n">4</td><td class="n">10</td><td class="n">0.25</td><td class="n">0.00</td></tr><tr><td class="">SMURF5-A2-R</td><td class="">必订</td><td class="">V3</td><td class="seq">TATTACCGCGRCTGCTGGCA</td><td class="n">20</td><td class="n">516–535</td><td class="">66.9（65.5–68.3）</td><td class="n">2</td><td class="n">3.5</td><td class="n">2.50</td><td class="n">2.50</td></tr><tr><td class="">SMURF5-A3-F.1</td><td class="">必订</td><td class="">V4</td><td class="seq">GGAWTYAYTGGGCGTAAAG</td><td class="n">19</td><td class="n">558–576</td><td class="">57.4（55.2–59.6）</td><td class="n">8</td><td class="n">0.9</td><td class="n">2.25</td><td class="n">2.25</td></tr><tr><td class="">SMURF5-A3-F.2</td><td class="">必订</td><td class="">V4</td><td class="seq">CGGRAWTYATTGGGTTTAAAG</td><td class="n">21</td><td class="n">556–576</td><td class="">56.5（54.5–58.6）</td><td class="n">8</td><td class="n">0.6</td><td class="n">0.25</td><td class="n">0.25</td></tr><tr><td class="">SMURF5-A3-R</td><td class="">必订</td><td class="">V4</td><td class="seq">ACTACCRGGGTATCTAAKCC</td><td class="n">20</td><td class="n">785–804</td><td class="">58.9（56.2–61.6）</td><td class="n">4</td><td class="n">1.5</td><td class="n">2.50</td><td class="n">2.50</td></tr><tr><td class="">SMURF5-A4-F</td><td class="">必订</td><td class="">V6·V7</td><td class="seq">RAAACTCAAAGGAATTGACGGR</td><td class="n">22</td><td class="n">906–927</td><td class="">60.5（59.9–61.2）</td><td class="n">4</td><td class="n">0.5</td><td class="n">2.50</td><td class="n">2.50</td></tr><tr><td class="">SMURF5-A4-R.1</td><td class="">必订</td><td class="">V6·V7</td><td class="seq">ACGTCRTCCYCACCTTCCY</td><td class="n">19</td><td class="n">1177–1195</td><td class="">64.5（61.4–67.6）</td><td class="n">8</td><td class="n">17</td><td class="n">2.25</td><td class="n">2.50</td></tr><tr><td class="">SMURF5-A4-R.2（补充）</td><td class="">建议</td><td class="">V6·V7</td><td class="seq">TGACGTCATCCTYWCCTTCMT</td><td class="n">21</td><td class="n">1177–1197</td><td class="">62.0（60.0–64.1）</td><td class="n">8</td><td class="n">2.8</td><td class="n">0.25</td><td class="n">0.00</td></tr><tr><td class="">SMURF5-A5-F.1</td><td class="">必订</td><td class="">V8·V9</td><td class="seq">GCKACACRCRTGCTACAAT</td><td class="n">19</td><td class="n">1223–1241</td><td class="">61.0（56.7–65.3）</td><td class="n">8</td><td class="n">2.1</td><td class="n">1.12</td><td class="n">1.25</td></tr><tr><td class="">SMURF5-A5-F.2</td><td class="">必订</td><td class="">V8·V9</td><td class="seq">GCTACACACGTVMTACAAT</td><td class="n">19</td><td class="n">1223–1241</td><td class="">56.6（53.8–59.2）</td><td class="n">6</td><td class="n">7</td><td class="n">1.12</td><td class="n">1.25</td></tr><tr><td class="">SMURF5-A5-F.3（补充）</td><td class="">建议</td><td class="">V8·V9</td><td class="seq">GCTRCARRCGTGCTACAAT</td><td class="n">19</td><td class="n">1223–1241</td><td class="">61.0（57.3–65.0）</td><td class="n">8</td><td class="n">3.2</td><td class="n">0.25</td><td class="n">0.00</td></tr><tr><td class="">SMURF5-A5-R</td><td class="">必订</td><td class="">V8·V9</td><td class="seq">GGYWACCTTGTTACGACTT</td><td class="n">19</td><td class="n">1492–1510</td><td class="">57.3（55.8–59.4）</td><td class="n">4</td><td class="n">1.8</td><td class="n">2.50</td><td class="n">2.50</td></tr></tbody></table></div>
+<ul>
+<li>序列用 IUPAC 简并码，按混合碱基合成（R=A/G，Y=C/T，W=A/T，M=A/C，K=G/T，S=G/C，D=A/G/T，B=C/G/T，V=A/C/G）；反向引物的序列已经是 5′→3′ 的引物序列，位置是它在 E. coli 16S（顶链）上占据的范围；只含基因特异序列，没有接头和 UDP，带接头后的 Tm 和二聚体没有评估。</li>
+<li><b>“必订”</b>14 条是核心；<b>“建议”</b>3 条是支原体补充（A2-F.2、A4-R.2、A5-F.3），人基因组命中低、Tm 合适，对其他菌门没有害处（覆盖率反而略升）；<b>“可选”</b>1 条（A1-R.4）只在 SILVA 里把 V1·V2 的支原体覆盖提高约 6 个百分点，Greengenes 里没有提高。</li>
+<li>混合比例：每个引物位点（共 10 个）总量相同，终浓度 250 nM；位点内有多条时，核心按单独覆盖率分（A1-R 45/35/20，A3-F 90/10，A5-F 50/50），补充各占 10%。表中是“100 µL 的 10× 混合液里要加多少 µL 的 100 µM 母液”，含补充时总量 25 µL（加 75 µL 水），不含补充时同样总量 25 µL（有补充的位点，核心按原比例分满）。每 25 µL PCR 加 2.5 µL。</li>
+<li>人基因组（hg19，整池）：≤2 个错配 3,024 个位点、1 个潜在产物；≤3 个错配 59 个潜在产物；线粒体没有潜在产物。人基因组命中最多的是 A1-F（17 nt，291 个/展开序列）；其余都在 30 个以内。</li>
+</ul>
+
+<h2>二、备选（选一个版本时才订）</h2>
+<div class="tbl"><table><thead><tr><th>订购名称（备选）</th><th>用途</th><th>序列 5′→3′</th><th>nt</th><th>位置</th><th>Tm °C</th><th>展开数</th><th>人基因组位点 / 展开序列</th></tr></thead><tbody><tr><td class="">SMURF5-A2-R.alt短版</td><td class="">V3 短版反向引物（505–523，扩增子 338–523 = 186 bp）</td><td class="seq">TGCTGGCACGDARTTAGCC</td><td class="n">19</td><td class="n">505–523</td><td class="">63.8（61.9–66.3）</td><td class="n">6</td><td class="n">2.8</td></tr><tr><td class="">SMURF5-A4-F.alt967.1</td><td class="">V6·V7 缩短版正向引物（扩增子 967–1195 = 229 bp，需 .1 + .2 两条）</td><td class="seq">MWACGCGARGAACCTTACC</td><td class="n">19</td><td class="n">967–985</td><td class="">60.2（58.3–62.1）</td><td class="n">8</td><td class="n">1</td></tr><tr><td class="">SMURF5-A4-F.alt967.2</td><td class="">V6·V7 缩短版正向引物（同上）</td><td class="seq">MWACMCGAAGAACCTTACC</td><td class="n">19</td><td class="n">967–985</td><td class="">57.2（55.3–59.2）</td><td class="n">8</td><td class="n">2.8</td></tr></tbody></table></div>
+<ul>
+<li><b>V3：长版 vs 短版（推荐长版）</b>。长版用 A2-R 516–535（20 nt，2 个展开序列），扩增子 338–535（198 bp），理想准确率 95.38%（短版 95.33%）；对支原体长版好得多：V3 反向位点 Greengenes 92%、SILVA 97%，短版是 73% / 86%（需要再加一条补充才能到 97% / 98%）。代价：长版 Tm 66.9 °C（短版 63.8 °C），是池里最高的。短版更省事、Tm 低，但要加一条补充（`TGCTGGCACATAGTTWGYY`，19 nt，人基因组位点 8.9 个/展开序列）才对支原体有同样覆盖。选短版就不要订 A2-R（长版）。</li>
+<li><b>V6·V7：906 正向（推荐）vs 967 缩短版</b>。推荐 906 正向（290 bp）：对支原体几乎全覆盖（96% / 96%），缺 10 bp，在 V6 和 V7 之间的保守间隔区（1046–1055，平均熵 0.15 bit），不丢可变区。缩短版（967–1195，229 bp）不缺口、不需要考虑重叠，但正向位点对支原体弱（74% / 88%），要 2 条寡核苷酸，再加一条补充（`RTACMCGAARAACCTTACC`，14 个/展开序列）。选缩短版就不要订 A4-F（906）。</li>
+<li>V8·V9 保持 288 bp：内联 UDP（每端 10 bp）+ 2×150 读长下缺 8 bp（1363–1370），不是保守区（平均熵 0.68 bit），属准确率影响可忽略；需要合并读段的流程要注意。更短的 V8（1223–1407，185 bp）没有缺口，但丢掉 V9，没有放进这份清单。</li>
+</ul>
+
+<h2>三、整池评估</h2>
+<div class="tbl"><table><thead><tr><th>方案</th><th>寡核苷酸</th><th>展开数</th><th>Tm °C</th><th>严重二聚体</th><th>扩增子覆盖 SILVA</th><th>扩增子覆盖 GG</th><th>全部扩出 SILVA / GG</th><th>理想准确率</th><th>属准确率（三种规则）</th></tr></thead><tbody><tr><td class="">核心（不含补充）</td><td class="n">14</td><td class="n">90</td><td class="n">54.8–66.9</td><td class="n">0</td><td class="n">73/81/78/79/76</td><td class="n">87/95/91/92/94</td><td class="n">57.5% / 71.7%</td><td class="n">95.38%</td><td class="n">88.0 / 88.3 / 91.0%</td></tr><tr><td class="">推荐：核心 + 4 条支原体补充（延长后）</td><td class="n">18</td><td class="n">118</td><td class="n">54.8–66.9</td><td class="n">0</td><td class="n">74/81/78/79/77</td><td class="n">87/95/91/93/94</td><td class="n">58.4% / 72.1%</td><td class="n">95.38%</td><td class="n">88.0 / 88.3 / 91.0%</td></tr><tr><td class="">核心 + 3 条补充（不含 A1-R）</td><td class="n">17</td><td class="n">110</td><td class="n">54.8–66.9</td><td class="n">0</td><td class="n">73/81/78/79/77</td><td class="n">87/95/91/93/94</td><td class="n">58.2% / 72.1%</td><td class="n">95.38%</td><td class="n">88.0 / 88.3 / 91.0%</td></tr></tbody></table></div>
+<div class="tbl"><table><thead><tr><th>支原体（Tenericutes）扩增子覆盖：核心 → 含补充</th><th>Greengenes</th><th>SILVA</th></tr></thead><tbody><tr><td class="">V1·V2</td><td class="n">87% → 87%</td><td class="n">78% → 83%</td></tr><tr><td class="">V3</td><td class="n">87% → 90%</td><td class="n">92% → 95%</td></tr><tr><td class="">V4</td><td class="n">83% → 83%</td><td class="n">89% → 89%</td></tr><tr><td class="">V6·V7（906 正向）</td><td class="n">85% → 89%</td><td class="n">84% → 87%</td></tr><tr><td class="">V8·V9</td><td class="n">83% → 94%</td><td class="n">72% → 88%</td></tr><tr><td class="">至少扩出 3 个扩增子</td><td class="n">83% → 90%</td><td class="n">78% → 83%</td></tr></tbody></table></div>
+<ul>
+<li>推荐的 18 条加上表中 3 条备选（共 21 条，含各自的展开序列）两两检查，没有严重二聚体和发夹（备注里提到的另外两条备选补充，在延长前的版本做过同样检查，也没有问题）；推荐池平均 Tm 54.8–66.9 °C，退火温度建议先做梯度（大致 52–60 °C）。</li>
+<li>补充寡核苷酸对其他菌门没有害处：5 个扩增子全部扩出的序列 SILVA 56.8% → 57.7%，Greengenes 69.8% → 70.2%；属准确率持平或略高（三种规则：88.0 / 88.3 / 91.0% → 88.0 / 88.4 / 91.0%）。</li>
+<li>对支原体（Greengenes / SILVA）：补充后至少扩出 3 个扩增子的序列 83% → 90%，78% → 83%。</li>
+</ul>
+
+<h2>四、其他备注和限制</h2>
+<ul>
+<li>各扩增子长度：V1·V2 258、V3 198（长版）、V4 249、V6·V7 290、V8·V9 288 bp。V3 与 V1·V2、V4 的位点之间分别留 ≥20 bp，没有重叠。</li>
+<li>混合比例没有校正扩增子长度差异引起的扩增偏倚（V3 最短，V6·V7 最长），需要用已知组成的样本实测后调整各位点的量。</li>
+<li>A1-F 对人基因组有很多近似位点，人 DNA 多的样本（比如 FFPE）会浪费读段，也没法延长（数据库里序列在 8 位之前没有数据，评估不了）。</li>
+<li>补充寡核苷酸是针对支原体序列设计的，只在 Greengenes（202 条）和 SILVA（355 条，门由 Greengenes 推断）里评估，序列少，百分比误差有几个点；Greengenes 里 Phytoplasma 占了近四分之一，和你的样本可能不一致。</li>
+<li>覆盖率按“最多 1 个错配、3′ 端 3 个碱基匹配”的序列规则算，不是实际 PCR 效率；数据库不是最新版本；没有实验验证。</li>
+</ul>
+<footer>脚本：<code>python_5R/explore/final*.py</code>；数据：<code>docs/primer_design/order_list_full.csv</code>、<code>final_*.csv</code>。</footer>
+</main></div>

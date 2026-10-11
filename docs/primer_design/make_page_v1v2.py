@@ -1,0 +1,97 @@
+"""生成 docs/primer_v1v2.html"""
+import re, html
+import pandas as pd
+HERE = __file__.rsplit("/", 1)[0]; DOCS = HERE.rsplit("/", 1)[0]
+old = open(DOCS + "/5R_SMURF_pipeline.html", encoding="utf-8").read()
+head = re.sub(r"<title>.*?</title>", "<title>V1V2 引物单独优化</title>", old[:old.index("</style>") + 8], 1)
+NUMRE = re.compile(r"^[\d.%/ –→+-]+$")
+def cell(v, seq=False): return '<td class="' + ("seq" if seq else ("n" if NUMRE.match(str(v)) else "")) + '">' + html.escape(str(v)) + "</td>"
+def tbl(rows, heads, seqcol=None): return '<div class="tbl"><table><thead><tr>' + "".join(f"<th>{c}</th>" for c in heads) + "</tr></thead><tbody>" + "".join("<tr>" + "".join(cell(v, i == seqcol) for i, v in enumerate(r)) + "</tr>" for r in rows) + "</tbody></table></div>"
+p1 = lambda x: f"{x * 100:.1f}%"
+R = pd.read_csv(f"{HERE}/v1v2_scan_R_all.csv"); F = pd.read_csv(f"{HERE}/v1v2_scan_F_all.csv")
+def best(D, k, fold, side):
+    b = D[(D.k == k) & (D.fold == fold)].sort_values("cov_min", ascending=False).iloc[0]
+    pos = f"{b.start}–{b.start + b.L - 1}"
+    return [f"{k}", f"≤{fold}", int(b.total_fold), pos, f"{b.cov_min * 100:.1f}%", b.tops]
+rowsR = [best(R, k, f, "R") for k, f in ((1, 16), (2, 8), (2, 16), (3, 8), (3, 16), (4, 8), (4, 16), (6, 16))]
+rowsF = [best(F, k, f, "F") for k, f in ((1, 8), (2, 8), (3, 8), (4, 16))]
+A = pd.read_csv(f"{HERE}/v1v2_amplicon_eval.csv")
+rowsA = [[r.F, r.A1R.split(" + ", 1)[1], int(r.oligos), int(r.exp), f"{r.Tm_min:.0f}–{r.Tm_max:.0f}", f"{r.SILVA_amp}% / {r.GG_amp}%", p1(r.held_amp)] for _, r in A.iterrows() if r.F != "F17(2条)"]
+D = pd.read_csv(f"{HERE}/v1v2_design_eval.csv"); RB = pd.read_csv(f"{HERE}/robust_realistic.csv")
+rowsD = [[r.design, p1(r.abs60), p1(r.abs300), p1(r["frac0.8"]), p1(r.ideal_on_set)] for _, r in RB.iterrows() if r.design in ("S1", "紧凑 4 扩增子 95%", "紧凑 4 扩增子 95% + V1V2")]
+rowsD = [rowsD[0], rowsD[1]] + [[r.design.replace("紧凑 4 扩增子 95% + V1V2", "4 扩增子 + V1V2"), p1(r.abs60), p1(r.abs300), p1(r["frac0.8"]), p1(r.ideal_on_set)] for _, r in D.iterrows() if r.design.startswith("紧凑") and ("F17(1条) + 2 条/32" in r.design or "F17(1条) + 4 条/64" in r.design)]
+rowsD += [[r.design.replace("S1 + V1V2", "S1 + V1V2"), p1(r.abs60), p1(r.abs300), p1(r["frac0.8"]), p1(r.ideal_on_set)] for _, r in D.iterrows() if r.design.startswith("S1") and "F17(1条) + 4 条/64" in r.design]
+tR = tbl(rowsR, ["引物条数", "单条展开上限", "展开后总数", "位置（E. coli）", "位点覆盖率（Greengenes / SILVA 取较低）", "序列 5′→3′（顶链方向）"], seqcol=5)
+tF = tbl(rowsF, ["引物条数", "单条展开上限", "展开后总数", "位置", "位点覆盖率", "序列 5′→3′"], seqcol=5)
+tA = tbl(rowsA, ["A1-F", "A1-R", "寡核苷酸数", "展开后总数", "Tm °C", "扩增子覆盖：SILVA / GG", "留出集覆盖"])
+T = pd.read_csv(f"{HERE}/v1v2_tm_design.csv")
+tT = tbl([["未均衡", "TACCYCACCAACWARCT / TACCCCRCCAACTABCT / TACCYTACCAACTARYT", "55.4 / 58.0 / 50.1"], ["均衡（第三条延长 3 nt）", "TACCYCACCAACWARCT / TACCCCRCCAACTABCT / CGTTACCYTACCAACTARYT", "55.4 / 58.0 / 56.8"]], ["A1-R 版本", "寡核苷酸 5′→3′", "Tm °C"], seqcol=1)
+tE = tbl([[r.design, int(r.oligos), int(r.expansions), f"{r.Tm_min}–{r.Tm_max}", int(r.severe), f"{r.SILVA_all*100:.0f}% / {r.GG_all*100:.0f}%", p1(r.ideal_acc), p1(r.abs60), p1(r.abs300), p1(r["frac0.8"])] for _, r in T.iterrows()] + [["4 个扩增子（推荐）", 10, 56, "50.8–63.5", 0, "67% / 81%", "94.2%", "91.4%", "90.9%", "91.5%"]],
+         ["方案", "寡核苷酸", "展开数", "Tm °C", "严重二聚体", "全部扩出 SILVA / GG", "理想", "≥60", "≥300", "≥80%"])
+tD = tbl(rowsD, ["方案", "共同位点 ≥60", "≥300", "≥80% 自身位点", "理想（全部扩出）"])
+body = f"""
+<div class="wrap"><main style="grid-column:1/-1;width:100%;max-width:980px;margin-inline:auto">
+<header>
+  <div class="eyebrow">16S_5R · 引物设计</div>
+  <h1>V1·V2 反向引物单独优化：值不值得把 V1·V2 加回去</h1>
+  <p class="lede">单独为 V1·V2（A1）的反向引物扫描位置、长度、条数和简并度，并把正向引物 A1-F 也一起重做。位点覆盖率能提到 92–95%，但整个扩增子的覆盖率几乎不动，所以不建议把 V1·V2 加回推荐方案。</p>
+  <p>这是计算机模拟，没有实验验证。数据库是 Greengenes 13_8 和 SILVA 128，不是最新版本。</p>
+</header>
+
+<h2>一、结论</h2>
+<ul>
+<li><b>A1-R 的位点覆盖率可以明显提高</b>：原来 3 条（展开 16）的组合，改成 2 条（展开 32，259–275）约 92%，3 条（展开 48，244–260）约 93%，4 条（展开 64，243–259）约 95%。位点覆盖率是 Greengenes 和 SILVA 中较低的那个。</li>
+<li><b>但整个 V1·V2 扩增子的覆盖率只提高了几个百分点</b>：SILVA 从 74% 到 77–78%，Greengenes 从 87% 到 90–92%，而且 7–8 条寡核苷酸才到顶。正向引物 A1-F 一侧本身就有缺口，SILVA 里 A1-F 单独只有约 80% 的序列匹配（全部序列，不限于主要门）。</li>
+<li><b>A1-F 缩短到 17 nt（8–24）更好</b>：1 条 <code>AGRGTTTGATYMTGGCT</code> 位点覆盖率 95%，比原来的 19 nt（8–26）高；扩增子覆盖率只多约 1 个百分点。</li>
+<li><b>把 V1·V2 加回去，属准确率没有净收益</b>：理想情况（全部扩出）提高约 0.7–0.9 个百分点；把扩增失败算进去后，4 个扩增子方案加 V1·V2 在三种比较规则下是 90.0 / 90.1 / 91.4%，不加是 91.4 / 90.9 / 91.5%，持平或略差。</li>
+<li><b>推荐不变</b>：4 个扩增子（V3、V4、V6·V7、V8·V9）、95%、10 条寡核苷酸。V1·V2 如果一定要，A1-F 用 17 nt 单条，A1-R 用 4 条（展开 64）；代价是再多 6 条寡核苷酸，Tm 下限 53 °C 左右。</li>
+</ul>
+
+<h2>二、更正：上一轮“加 V2 变差”的结论有一部分是评估假象</h2>
+<ul>
+<li><b>数据缺失</b>：约 20% 的带标签序列在 8–19 位没有数据，位于 8–26 的 A1-F 会被错判成没扩出。现在只用 8–1510 都有数据的序列评估（带标签 5,046 条，留出集 2,196 条、348 个属；SILVA 8,434 条，Greengenes 2,523 条）。</li>
+<li><b>比较规则很敏感</b>：“扩增失败算进去”的准确率取决于两条序列至少要有多少共同位点才可比。规则改变，S1 加 V1·V2 的差距从 −7 个百分点变到 0（见第五节）。所以早先页面里“每种方案 87.0%、90.8%、84.7%”之类的数字，只能当作粗略排序，不要当作精确差距。</li>
+<li>修正后的结论是：V1·V2 加回去的收益在误差范围内，不是明显有害，但也不值得。</li>
+</ul>
+
+<h2>三、A1-R 扫描（起点 243–280，长度 17/19/21/23，设计集 Greengenes 一半 + SILVA 12,000 条）</h2>
+{tR}
+<p>位点覆盖率在 4 条以后基本到顶（6 条 96.7%，8 条 96.9%）。Tm（引物池内最低/最高）见第四节。</p>
+
+<h2>四、A1-F 扫描，以及两端组合后的扩增子覆盖率</h2>
+{tF}
+<p>下面是 A1-F × A1-R 的组合，在“8–1510 都有数据”的序列上评估：</p>
+{tA}
+<p>3 条/22 和 4 条/30 的最低 Tm 只有 50 °C，4 条/64 约 53 °C，没有严重二聚体。</p>
+
+<h2>五、加回 V1·V2 的属准确率（留出集 2,196 条，属级最近邻）</h2>
+{tD}
+<p>三列是同一份数据、三种“可比”规则；理想列是假设所有扩增子都扩出。差距随规则变化，说明扩增失败的处理方式对结论的影响比引物本身更大。</p>
+
+<h2>六、Tm 均衡后，5 个扩增子方案（推荐的 4 个 + V1·V2）</h2>
+<p>取第三节的 3 条/22（246–262）作 A1-R，A1-F 用 17 nt 单条。原版第三条 <code>TACCYTACCAACTARYT</code> 的 Tm 只有 50.1 °C。把它的 5′ 端沿模板延长 3 个碱基（取设计集中该寡核苷酸所覆盖序列的多数碱基）后：</p>
+{tT}
+<p>Tm 从 50.1 升到 56.8 °C，和另外两条（55.4、58.0）接近；位点覆盖率在 SILVA / Greengenes 里各掉约 1.9 / 0.4 个百分点（91.4→89.5%，89.0→88.6%），因为新增的 5′ 碱基给部分序列增加了错配。池内没有严重二聚体和发夹。整个池的最低 Tm 仍是 A5-F 的 50.8 °C，不是 A1-R。</p>
+<p>并入推荐设计后（A1 = V1·V2，其余顺延）：</p>
+{tE}
+<p><b>结论：并入后寡核苷酸从 10 条增加到 14 条，“5 个扩增子都扩出”的序列只有 59%（SILVA）/ 72%（GG），低于 4 个扩增子的 67% / 81%；理想准确率多 1.2 个百分点，但算入扩增失败后三种规则下是 88.6–88.7 / 88.6 / 91.2%，不比 4 个扩增子（91.4 / 90.9 / 91.5%）好。</b>所以我仍然不建议把 V1·V2 并入推荐设计；这一版保留作为需要 V1·V2 信息时的备选。</p>
+<p>更正：我在对话里口头给出过“加 V1·V2 后 91.3 / 91.3 / 91.3%”，这个数字是错的，正确的是上表和第五节的数字。</p>
+<h2>七、为什么多一个区域，准确率反而下降？——指标的问题</h2>
+<p>多出来的 V1·V2 数据最差也可以不用，所以 5 个扩增子不应该比 4 个差。第六节的下降是我用的“扩增失败也算”指标不单调造成的：它把所有扩增子的位点合在一起，按错配率找最近邻，V1·V2 的位点一加进来，谁和谁“可比”、谁是最近邻都会变，噪声大的区域会把原来正确的最近邻挤掉。用一个单调的规则重算：<b>先只用 4 个扩增子找最近邻，V1·V2 仅在平局时用来打破平局，或者在 4 个扩增子都没扩出时兜底</b>（留出集 2,196 条）：</p>
+<div class="tbl"><table><thead><tr><th>规则</th><th>共同位点 ≥60</th><th>≥300</th><th>≥80% 自身位点</th></tr></thead><tbody>
+<tr><td>4 个扩增子</td><td class="n">91.4%</td><td class="n">90.9%</td><td class="n">91.5%</td></tr>
+<tr><td>5 个扩增子，V1·V2 只作平局/兜底</td><td class="n">91.6%</td><td class="n">90.9%</td><td class="n">91.6%</td></tr>
+<tr><td>5 个扩增子，全部一起算（第六节）</td><td class="n">88.7%</td><td class="n">88.6%</td><td class="n">91.2%</td></tr>
+</tbody></table></div>
+<p>所以：V1·V2 没有“有害”，只是在这个评估里几乎没有收益，+0.0 到 +0.1 个百分点；理想情况下的 +1.2 个百分点（所有序列都扩出所有区域）在现实里被两件事吃掉：V1·V2 只有约 74%（SILVA）的序列能扩出，而另外 4 个扩增子已经把大部分序列分开了。真实的 SMURF 不是按最近邻错配率算，而是联合求解各区域的数据库匹配，这里的数字只能当粗略估计。</p>
+<h2>八、局限</h2>
+<ul>
+<li>引物覆盖按“最多 1 个错配、3′ 端 3 个碱基匹配”算，真实 PCR 更复杂。没有检查对人基因组和线粒体的特异性。</li>
+<li>属准确率只测到属，Greengenes 属标签偏向培养过的属；扩增失败的处理是我设计的简化。</li>
+<li>设计集和留出集虽然分开，但都来自同两个数据库；GTDB 没评估。</li>
+</ul>
+<footer>脚本：<code>python_5R/explore/v1v2_scan_R.py</code>、<code>v1v2_tm.py</code>、<code>v1v2_mono.py</code>、<code>v1v2_scan_F.py</code>、<code>v1v2_eval.py</code>；数据：<code>docs/primer_design/v1v2_*.csv</code>、<code>robust_realistic.csv</code>。</footer>
+</main></div>
+"""
+open(DOCS + "/primer_v1v2.html", "w", encoding="utf-8").write(head + body)
+print("ok")

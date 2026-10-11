@@ -1,0 +1,1 @@
+{"universe": {"n_each": 100}, "pool": {"n_each": 36, "iters": 300000}, "pairs": {"n_pairs": 16, "n_core": 8, "iters": 200000}, "procs": 4}
