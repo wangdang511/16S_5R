@@ -101,6 +101,7 @@ s0 → s1 →（每轮：s2 → s3 → s4 → s5 → s6 → s7）→ s8 → s9�
 | `s1_baseline.py` | panel → `baseline.npz`、`thresholds.json`、`lint.tsv`、`flush.tsv` | 不带尾巴的全部展开引物两两二聚体；自动阈值；接合处互补预检 | 1.5·N² 次 primer3 调用 |
 | `s2_hotpairs.py` | → `hot_pairs.json` | 基线接近阈值的引物名对 + lint 命中 + `hot_extra.json`（s7 补回的） | 秒 |
 | `s3_single.py` | → `single.pkl` | 每条尾巴按 i5 角色（加在正向）和 i7 角色（加在反向）对热点引物对算 FF / RR / FRu / RFu 和发夹，另算“尾巴本身 × 全部引物”的代理。**增量**：新增热点对只补算新增部分 | 约 960 × (3·热点对数·展开² + 3N) |
+| `s3b_calibrate.py` | → `thresholds.json`（grading=relative）、`tubes_calib/`、`calib.tsv` | **相对分级**：随机抽 K=48 个 i5×i7 组合整管实测，A=分布前 20%、B=前 70%（两维联合分位）；绝对阈值保留在 `abs` 字段。只在第一次运行，之后各轮阈值不变。必须用整管实测而非代理预测：代理对大 panel 系统性偏乐观 | K 个整管 |
 | `s4_pool.py` | → `pool.json` | 模拟退火选 M 个 i5 + M 个 i7：硬约束（编辑距离、跨类反向互补、每周期配色）+ 单条代价 | 分钟 |
 | `s5_fr.py` | → `fr_*of*.pkl` | 候选池里每个 i5 × 每个 i7 的正向×反向热点相互作用；越差越早终止；**增量**；`--shard k/n` 多机并行 | **M² × 热点 F×R 对数 × 展开乘积 × 3 次调用，是最贵的一步** |
 | `s6_pair.py` | → `pairs_rK.json` | 模拟退火选 n_pairs 对并配对；`--meas` 用累积实测覆盖预测；`--ban5 / --ban7` 禁用序列 | 分钟 |

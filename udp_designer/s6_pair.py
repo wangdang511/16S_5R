@@ -21,8 +21,11 @@ if __name__ == "__main__":
     TIER = np.vectorize(lambda h, e: tier_of(h, e, th))(TH, TE); COST = np.vectorize(lambda h, e: tier_cost(h, e, th))(TH, TE)
     if args.meas:
         i5x = {x: i for i, x in enumerate(n5)}; i7x = {x: i for i, x in enumerate(n7)}
-        for a, b, t in json.load(open(args.meas)):
-            if a in i5x and b in i7x: TIER[i5x[a], i7x[b]] = t; COST[i5x[a], i7x[b]] = {"A": 0.0, "B": 3.0, "C": 30.0}[t]
+        for m in json.load(open(args.meas)):
+            a, b = m[0], m[1]
+            if a in i5x and b in i7x:      # 有整管实测值的按当前阈值重算（阈值可能已从绝对改为相对）
+                if len(m) >= 5: TIER[i5x[a], i7x[b]] = tier_of(m[3], m[4], th); COST[i5x[a], i7x[b]] = tier_cost(m[3], m[4], th)
+                else: TIER[i5x[a], i7x[b]] = m[2]; COST[i5x[a], i7x[b]] = {"A": 0.0, "B": 3.0, "C": 30.0}[m[2]]
     for x in filter(None, args.ban5.split(",")): COST[n5.index(x), :] += 1e4; TIER[n5.index(x), :] = "C"
     for x in filter(None, args.ban7.split(",")): COST[:, n7.index(x)] += 1e4; TIER[:, n7.index(x)] = "C"
     print(f"{nr}×{nc} 组合预测：", {t: int((TIER == t).sum()) for t in "ABC"}, flush=True)

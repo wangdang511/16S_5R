@@ -10,6 +10,8 @@ DEFAULT_CFG = {
                                        # auto：基线超标时整体放宽阈值（旧做法，一对极端引物会让阈值失去意义）；absolute：不做任何处理
              "delta_grace": 0.5,       # delta 模式容差（kcal/mol）：有效阈值 = min(绝对阈值, 无尾巴值 − grace)。0.5 = 接合处型引物对加典型尾巴的中位偏移（≈0.4）
                                        # 之上；33 条 panel 的接合处引物对（无尾巴 −3.78）不受影响
+             "grading": "relative",    # relative：按随机组合整管实测的分布定阈值（s3b，A=前 rel_A，B=前 rel_B）；absolute：用上面的固定阈值
+             "rel_A": 0.2, "rel_B": 0.7, "calib_n": 48, "calib_seed": 7,
              "margin_A_H": 1.3, "margin_A_E": 0.7, "gap_B_H": 1.5, "gap_B_E": 1.0},
     "tail": {"len": 10, "gc_min": 4, "gc_max": 6, "min_edit": 4, "cross_rc_min": 3, "palin_min": 4},
     "per_cycle": {"lo": 0.4, "hi": 0.6, "base_min": 0.15},
@@ -87,6 +89,10 @@ def load_thresholds(work, cfg):
     p = os.path.join(work, "thresholds.json")
     th = json.load(open(p)) if os.path.exists(p) else dict(cfg["tier"])
     return {k: th[k] for k in ("A_H", "A_E", "B_H", "B_E")}
+def load_abs_thresholds(work, cfg):
+    """绝对阈值（相对分级时也保留，导出时并列给出）"""
+    p = os.path.join(work, "thresholds.json"); th = json.load(open(p)) if os.path.exists(p) else {}
+    return th.get("abs") or {k: cfg["tier"][k] for k in ("A_H", "A_E", "B_H", "B_E")}
 
 # ---------------- 尾巴规则 ----------------
 def kmers6():

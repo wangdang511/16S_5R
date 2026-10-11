@@ -8,7 +8,7 @@
 from udp_common import *
 
 if __name__ == "__main__":
-    ap = common_args(__doc__); args = ap.parse_args(); cfg = setup(args); th = load_thresholds(args.work, cfg); hc = cfg["hot"]
+    ap = common_args(__doc__); args = ap.parse_args(); cfg = setup(args); th = load_thresholds(args.work, cfg); ta = load_abs_thresholds(args.work, cfg); th = dict(th, A_H=max(th["A_H"], ta["A_H"]), A_E=max(th["A_E"], ta["A_E"])); hc = cfg["hot"]
     z = np.load(wp(args.work, "baseline_names.npz")); PH, PE, names = z["PH"], z["PE"], list(z["names"]); G = len(names)
     hot = {}
     for a in range(G):

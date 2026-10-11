@@ -63,8 +63,8 @@ if __name__ == "__main__":
     res = [pickle.load(open(f, "rb")) for f in files]; act = [tier_of(r["minH"], r["minE"], th) for r in res]; pred = [p.get("tier") for p in pairs]
     print("整管实测：", {t: act.count(t) for t in "ABC"}, "前 n_core：", {t: act[:cfg['pairs']['n_core']].count(t) for t in "ABC"})
     if all(pred): print("预测：", {t: pred.count(t) for t in "ABC"}, "一致率 %.3f" % np.mean([a == b for a, b in zip(act, pred)]), "实测比预测差的管", sum(a > b for a, b in zip(act, pred)))
-    mf = wp(args.work, "meas.json"); meas = json.load(open(mf)) if os.path.exists(mf) else []; seen = {(a, b) for a, b, _ in meas}
-    meas += [[p["i5"], p["i7"], a] for p, a in zip(pairs, act) if (p["i5"], p["i7"]) not in seen]; json.dump(meas, open(mf, "w"))      # 累积：给第 6 步 --meas 用
+    mf = wp(args.work, "meas.json"); meas = json.load(open(mf)) if os.path.exists(mf) else []; seen = {(m[0], m[1]) for m in meas}
+    meas += [[p["i5"], p["i7"], a, r["minH"], r["minE"]] for p, a, r in zip(pairs, act, res) if (p["i5"], p["i7"]) not in seen]; json.dump(meas, open(mf, "w"))      # 累积：给第 6 步 --meas 用
     miss = {}
     for r, a, p_ in zip(res, act, pred):
         if p_ and a > p_:                        # 字母越靠后越差

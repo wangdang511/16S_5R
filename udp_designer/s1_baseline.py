@@ -78,7 +78,8 @@ if __name__ == "__main__":
     if th.get("mode") == "auto":
         th["A_H"] = min(th["A_H"], round(h0 - th["margin_A_H"], 1)); th["A_E"] = min(th["A_E"], round(e0 - th["margin_A_E"], 1))
         th["B_H"] = min(th["B_H"], round(th["A_H"] - th["gap_B_H"], 1)); th["B_E"] = min(th["B_E"], round(th["A_E"] - th["gap_B_E"], 1))
-    json.dump({k: th[k] for k in ("A_H", "A_E", "B_H", "B_E")}, open(wp(args.work, "thresholds.json"), "w"))
+    tp = wp(args.work, "thresholds.json"); prev = json.load(open(tp)) if os.path.exists(tp) else {}
+    if prev.get("grading") != "relative": json.dump({k: th[k] for k in ("A_H", "A_E", "B_H", "B_E")}, open(tp, "w"))   # 已做相对校准（s3b）的不覆盖
     # delta 模式：记录不带尾巴就超过 A 阈值的展开引物对的超标量（≤0），后面所有步骤按“额外恶化”计分
     off = {}
     if th.get("mode", "delta") == "delta":
